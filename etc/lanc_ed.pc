@@ -1,0 +1,8 @@
+exec_prefix=${prefix}/bin
+includedir=${prefix}/include
+libdir=${prefix}/lib
+
+Name: lanc_ed
+Description: The LANC_ED library
+Cflags: -I${includedir}
+

@@ -1,0 +1,32 @@
+FUNCTION(BUILD_ENV_MODULE FILE)
+  FILE(WRITE  ${FILE}  "#%Module\n")
+  FILE(APPEND ${FILE} "set project ${PROJECT_NAME}\n")
+  FILE(APPEND ${FILE} "set root ${PREFIX}\n")
+  FILE(APPEND ${FILE} "set plat ${FC_ID}\n")
+  FILE(APPEND ${FILE} "set version \"${VERSION} (${FULL_VER})\"\n")
+  FILE(APPEND ${FILE} "set compiler ${CMAKE_Fortran_COMPILER}\n")
+  FILE(READ   ${LIB_ENV}/module CONTENTS)
+  FILE(APPEND ${FILE} "${CONTENTS}")
+ENDFUNCTION()
+
+
+
+FUNCTION(BUILD_CONFIGVARS_USER FILE)
+  FILE(READ   ${LIB_ETC}/lanc_ed_config.sh CONTENTS)
+  FILE(WRITE  ${FILE} "${CONTENTS}")
+  FILE(APPEND ${FILE} "add_library_to_system ${CMAKE_INSTALL_PREFIX}\n")
+ENDFUNCTION()
+
+
+
+FUNCTION(BUILD_PKCONFIG FILE)
+  FILE(WRITE ${FILE} "prefix=${CMAKE_INSTALL_PREFIX}\n")
+  FILE(READ   ${LIB_ETC}/${PROJECT_NAME}.pc CONTENTS)
+  FILE(APPEND ${FILE} "${CONTENTS}")
+  SET(LIBDIR "\\$\\{libdir\\}")
+  STRING(REPLACE "\\" ""  LIBDIR ${LIBDIR})
+  SET(LIB_LIBDIR "-L${LIBDIR} -llanc_ed\n")
+  MESSAGE(STATUS "${Yellow}LIB compilation lines:${ColourReset} ${LIB_LIBDIR}")
+  FILE(APPEND ${FILE} "Libs: ${LIB_LIBDIR}\n")
+  FILE(APPEND ${FILE} "Version:${VERSION}\n")
+ENDFUNCTION()
