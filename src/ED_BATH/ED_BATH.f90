@@ -20,29 +20,10 @@ MODULE ED_BATH
   !##################################################################
 
   !Interface for user bath I/O operations: get,set,copy
-  interface get_component_bath
-     module procedure get_full_component_bath
-     module procedure get_spin_component_bath
-     module procedure get_spin_orb_component_bath
-  end interface get_component_bath
-
-  interface set_component_bath
-     module procedure set_full_component_bath
-     module procedure set_spin_component_bath
-     module procedure set_spin_orb_component_bath
-  end interface set_component_bath
-
-  interface copy_component_bath
-     module procedure copy_full_component_bath
-     module procedure copy_spin_component_bath
-     module procedure copy_spin_orb_component_bath
-  end interface copy_component_bath
-
   interface get_bath_dimension
      module procedure ::  get_bath_dimension_direct
      module procedure ::  get_bath_dimension_symmetries
   end interface get_bath_dimension
-
 
   !explicit symmetries:
   interface break_symmetry_bath
@@ -115,14 +96,10 @@ MODULE ED_BATH
   public  :: get_bath_dimension
   public  :: check_bath_dimension
   !
-  public  :: get_component_bath_dimension
-  public  :: get_spin_component_bath_dimension
-  public  :: get_orb_component_bath_dimension
-  public  :: get_spin_orb_component_bath_dimension
-  !
-  public  :: get_component_bath
-  public  :: set_component_bath
-  public  :: copy_component_bath
+  public  :: get_bath_component_dimension
+  public  :: get_bath_component
+  public  :: set_bath_component
+  public  :: copy_bath_component
   !
   public  :: break_symmetry_bath              
   public  :: spin_symmetrize_bath
@@ -264,7 +241,7 @@ contains
 
 
 
-  
+
   ! DMFT BATH ROUTINES:
   include 'dmft_aux.f90'
 

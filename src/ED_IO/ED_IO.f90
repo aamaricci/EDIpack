@@ -13,14 +13,14 @@ MODULE ED_IO
 
   !Retrieve imp GF through routines.
   interface ed_get_gimp_matsubara
-     module procedure ed_get_gimp_matsubara
+     module procedure ed_get_gimp_matsubara_main
      module procedure ed_get_gimp_matsubara_lattice
      module procedure ed_get_gimp_matsubara_site
   end interface ed_get_gimp_matsubara
 
 
   interface ed_get_gimp_realaxis
-     module procedure ed_get_gimp_realaxis
+     module procedure ed_get_gimp_realaxis_main
      module procedure ed_get_gimp_realaxis_lattice
      module procedure ed_get_gimp_realaxis_site
   end interface ed_get_gimp_realaxis
@@ -28,30 +28,17 @@ MODULE ED_IO
 
   !Retrieve self-energy through routines:
   interface ed_get_sigma_matsubara
-     module procedure ed_get_sigma_matsubara
+     module procedure ed_get_sigma_matsubara_main
      module procedure ed_get_sigma_matsubara_lattice
      module procedure ed_get_sigma_matsubara_site
   end interface ed_get_sigma_matsubara
 
-  interface ed_get_sigma_real
-     module procedure ed_get_sigma_realaxis
+  interface ed_get_sigma_realaxis
+     module procedure ed_get_sigma_realaxis_main
      module procedure ed_get_sigma_realaxis_lattice
      module procedure ed_get_sigma_realaxis_site
-  end interface ed_get_sigma_real
+  end interface ed_get_sigma_realaxis
 
-
-  !Retrieve imp GF_0 (G0_and) through routines.
-  interface ed_get_g0imp_matsubara
-     module procedure ed_get_g0imp_matsubara
-     module procedure ed_get_g0imp_matsubara_lattice
-     module procedure ed_get_g0imp_matsubara_site
-  end interface ed_get_g0imp_matsubara
-
-  interface ed_get_g0imp_realaxis
-     module procedure ed_get_g0imp_realaxis
-     module procedure ed_get_g0imp_realaxis_lattice
-     module procedure ed_get_g0imp_realaxis_site
-  end interface ed_get_g0imp_realaxis
 
 
   !Retrieve Anderson non-interacting GF from the user bath
@@ -71,73 +58,67 @@ MODULE ED_IO
 
   !Retrieve static common observables  
   interface ed_get_dens
-     module procedure ed_get_dens_1
-     module procedure ed_get_dens_2
-     module procedure ed_get_dens_lattice_1
-     module procedure ed_get_dens_lattice_2
+     module procedure ed_get_dens_main
+     module procedure ed_get_dens_lattice
   end interface ed_get_dens
 
   interface ed_get_mag
-     module procedure ed_get_mag_1
-     module procedure ed_get_mag_2
-     module procedure ed_get_mag_lattice_1
-     module procedure ed_get_mag_lattice_2
+     module procedure ed_get_mag_main
+     module procedure ed_get_mag_lattice
   end interface ed_get_mag
 
   interface ed_get_docc
-     module procedure ed_get_docc_1
-     module procedure ed_get_docc_2
-     module procedure ed_get_docc_lattice_1
-     module procedure ed_get_docc_lattice_2
+     module procedure ed_get_docc_main
+     module procedure ed_get_docc_lattice
   end interface ed_get_docc
 
   interface ed_get_eimp
-     module procedure :: ed_get_eimp_
+     module procedure :: ed_get_eimp_main
      module procedure :: ed_get_eimp_lattice
   end interface ed_get_eimp
 
   interface ed_get_epot
-     module procedure :: ed_get_epot_
+     module procedure :: ed_get_epot_main
      module procedure :: ed_get_epot_lattice
   end interface ed_get_epot
 
   interface ed_get_eint
-     module procedure :: ed_get_eint_
+     module procedure :: ed_get_eint_main
      module procedure :: ed_get_eint_lattice
   end interface ed_get_eint
 
   interface ed_get_ehartree
-     module procedure :: ed_get_ehartree_
+     module procedure :: ed_get_ehartree_main
      module procedure :: ed_get_ehartree_lattice
   end interface ed_get_ehartree
 
   interface ed_get_eknot
-     module procedure :: ed_get_eknot_
+     module procedure :: ed_get_eknot_main
      module procedure :: ed_get_eknot_lattice
   end interface ed_get_eknot
 
   interface ed_get_doubles
-     module procedure :: ed_get_doubles_
+     module procedure :: ed_get_doubles_main
      module procedure :: ed_get_doubles_lattice
   end interface ed_get_doubles
 
   interface ed_get_dust
-     module procedure :: ed_get_dust_
+     module procedure :: ed_get_dust_main
      module procedure :: ed_get_dust_lattice
   end interface ed_get_dust
 
   interface ed_get_dund
-     module procedure :: ed_get_dund_
+     module procedure :: ed_get_dund_main
      module procedure :: ed_get_dund_lattice
   end interface ed_get_dund
 
   interface ed_get_dse
-     module procedure :: ed_get_dse_
+     module procedure :: ed_get_dse_main
      module procedure :: ed_get_dse_lattice
   end interface ed_get_dse
 
   interface ed_get_dph
-     module procedure :: ed_get_dph_
+     module procedure :: ed_get_dph_main
      module procedure :: ed_get_dph_lattice
   end interface ed_get_dph
 
@@ -151,9 +132,6 @@ MODULE ED_IO
 
   public :: ed_get_gimp_matsubara
   public :: ed_get_gimp_realaxis
-
-  public :: ed_get_g0imp_matsubara
-  public :: ed_get_g0imp_realaxis
 
   public :: ed_get_delta_function
   public :: ed_get_g0and_function
@@ -209,20 +187,10 @@ contains
 
 
   !+--------------------------------------------------------------------------+!
-  ! PURPOSE: Retrieve measured values of the impurity self-energy 
-  !+--------------------------------------------------------------------------+!
-  include "get_sigma.f90"
-
-
-  !+--------------------------------------------------------------------------+!
-  ! PURPOSE: Retrieve measured values of the impurity green's functions 
+  ! PURPOSE: Retrieve measured values of the impurity GF and self-energy 
   !+--------------------------------------------------------------------------+!
   include "get_gimp.f90"
 
-  !+--------------------------------------------------------------------------+!
-  ! PURPOSE: Retrieve measured values of the impurity green's functions 
-  !+--------------------------------------------------------------------------+!
-  include "get_g0imp.f90"
 
   !+--------------------------------------------------------------------------+!
   ! PURPOSE: Retrieve Anderson non-interacting green's functions 
@@ -233,12 +201,7 @@ contains
   !+--------------------------------------------------------------------------+!
   ! PURPOSE: Retrieve measured values of the local observables
   !+--------------------------------------------------------------------------+!
-  include "get_dens.f90"
-  include "get_mag.f90"
-  include "get_docc.f90"
-  include "get_eimp.f90"
-  include "get_doubles.f90"
-  !
+  include "get_obs.f90"
   include "get_imp_dm.f90"
 
 
