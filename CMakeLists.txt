@@ -136,7 +136,7 @@ INCLUDE_DIRECTORIES(BEFORE ${SCIFOR_INCLUDE_DIRS})
 ############################################################
 if(CMAKE_Fortran_COMPILER_ID MATCHES GNU) # this is gfortran
   SET(CMAKE_Fortran_MODDIR_FLAG   "-J")
-  SET(CMAKE_Fortran_FLAGS         "-cpp -ffree-line-length-none ") # -mcmodel=large  this is to remove the 2Gb limit of virtual memory allocation
+  SET(CMAKE_Fortran_FLAGS         "-cpp -ffree-line-length-none -w ") #  -fallow-argument-mismatch -mcmodel=large  this is to remove the 2Gb limit of virtual memory allocation
   SET(CMAKE_Fortran_FLAGS_TESTING "-O2 -funroll-loops")
   SET(CMAKE_Fortran_FLAGS_DEBUG   "-O0 -p -g -Wsurprising -Waliasing -fwhole-file -fcheck=all -pedantic -fbacktrace -fbounds-check")
   SET(CMAKE_Fortran_FLAGS_RELEASE "-O3  -funroll-loops")  ##-fno-protect-parens -flto -ffast-math -march=native
@@ -183,9 +183,10 @@ ENDIF()
 SET(USER_HOME $ENV{HOME})
 SET(USER $ENV{USER})
 
+STRING(TOLOWER "${CMAKE_Fortran_COMPILER_ID}" FC_ID)
 
-SET(LIB_PATH  "$ENV{HOME}/opt/${PROJECT_NAME}/${VERSION}")
-SET(FULL_VER "${VERSION}")
+SET(LIB_PATH  "$ENV{HOME}/opt/${PROJECT_NAME}/${FC_ID}")
+SET(FULL_VER "${FC_ID}")
 IF("${CMAKE_BUILD_TYPE}" MATCHES "DEBUG")
   STRING(TOLOWER "${CMAKE_BUILD_TYPE}" BUILD_TYPE)
   SET(LIB_PATH  "${LIB_PATH}/${BUILD_TYPE}")
@@ -199,9 +200,8 @@ IF(GIT_REPO)
   ENDIF()
 ENDIF()
 
-STRING(TOLOWER "${CMAKE_Fortran_COMPILER_ID}" FC_ID)
-SET(FULL_VER  "${FULL_VER}/${FC_ID}")
-SET(PREFIX  "${LIB_PATH}/${FC_ID}" CACHE PATH "Prefix prepended to install directories")
+SET(FULL_VER  "${FULL_VER}/${VERSION}")
+SET(PREFIX  "${LIB_PATH}/${VERSION}" CACHE PATH "Prefix prepended to install directories")
 SET(CMAKE_INSTALL_PREFIX "${PREFIX}" CACHE INTERNAL "Prefix prepended to install directories" FORCE)
 
 
@@ -247,8 +247,19 @@ ADD_LIBRARY(lanc_ed STATIC
   $<TARGET_OBJECTS:ED_CHI_LIB>
   $<TARGET_OBJECTS:ED_GLOB_LIB>
   )
+ADD_DEPENDENCIES(ED_IO_LIB
+  ED_BATH_LIB
+  )
 
 
+ADD_DEPENDENCIES(ED_GLOB_LIB
+  ED_INIT_LIB
+  ED_BATH_LIB
+  ED_IO_LIB
+  ED_DIAG_LIB
+  ED_GF_LIB
+  ED_CHI_LIB
+  )
 
 
 SET(REVISION_FILE ${LIB_SRC}/revision.inc)
@@ -276,7 +287,9 @@ INCLUDE(${CMAKE_MODULE_PATH}/PostBuildLibrary.cmake)
 FILE(REMOVE_RECURSE ${LIB_TMP_ETC}/modules/)
 SET(TMP_MODULE_NAME "${FULL_VER}" CACHE PATH "Prefix prepended to install directories")
 SET(TMP_ENV_MODULE_FILE ${LIB_TMP_ETC}/modules/${PROJECT_NAME}/${TMP_MODULE_NAME})
+SET(TMP_VER_MODULE_FILE ${LIB_TMP_ETC}/modules/${PROJECT_NAME}/${FC_ID}/.version)
 BUILD_ENV_MODULE(${TMP_ENV_MODULE_FILE})
+BUILD_VERSION_MODULE(${TMP_VER_MODULE_FILE})
 
 #Build the user config script (sourced in user shell config file, i.e. .bashrc)
 SET(TMP_CONFIGVARS_FILE ${LIB_TMP_ETC}/lanc_ed_config.sh)
@@ -300,26 +313,53 @@ INSTALL(FILES ${TMP_CONFIGVARS_FILE} DESTINATION ${LIB_TARGET_ETC}/
 INSTALL(FILES ${TMP_VER_FILE} DESTINATION ${LIB_TARGET_DIR} 
   PERMISSIONS ${PERMISSION_777} SETUID)
 
+INSTALL(FILES ${LIB_TARGET_ETC}/${PROJECT_NAME}.pc DESTINATION $ENV{HOME}/.pkgconfig.d/
+  PERMISSIONS ${PERMISSION_777} SETUID)
+
+INSTALL(DIRECTORY ${LIB_TARGET_ETC}/modules/ DESTINATION $ENV{HOME}/.modules.d)
 
 
 MESSAGE( STATUS "${Red}Library version:${ColourReset} ${VERSION}")
 MESSAGE( STATUS "${Red}Library will be installed in:${ColourReset} ${CMAKE_INSTALL_PREFIX}")
-MESSAGE( STATUS "${Yellow}To conclude installation:${ColourReset} 
+MESSAGE( STATUS "
+>> ${Red}TO CONCLUDE INSTALLATION${ColourReset} <<
+Compile with:
 $ make
+Install with:
 $ make install
-$ make post-install
+
+Uninstall with:
+$ make uninstall
+
+Add library to your OS: 
+pick ONE method below  [add it in your bash profile to make it permanent (e.g. ~/.bashrc)]:
+${Yellow}Method 1: use the provided ${PROJECT_NAME} environment module${ColourReset}:
+   $ module use $HOME/.modules.d
+   $ module load ${PROJECT_NAME}/${FC_PLAT}
+
+${Yellow}Method 2: source the config script${ColourReset}:
+   $ source ${LIB_TARGET_ETC}/dmft_ed_config.sh
+
+${Yellow}Method 3: use pkg-config with the provided ${PROJECT_NAME}.pc${ColourReset}:
+   $ export PKG_CONFIG_PATH=${LIB_TARGET_ETC}/:$PKG_CONFIG_PATH
+   $ pkg-config --cflags --libs ${PROJECT_NAME} (to get lib info)
 ")
-
-
-ADD_CUSTOM_TARGET(
-  post-install
-  COMMAND "${CMAKE_COMMAND}" -P ${CMAKE_MODULE_PATH}/HomeInstall.cmake ${CMAKE_SOURCE_DIR} ${CMAKE_INSTALL_PREFIX} ${PROJECT_NAME} ${FULL_VER} 
-  WORKING_DIRECTORY
-  "${CMAKE_BINARY_DIR}"
-)
 
 
 # Add a distclean target to the Makefile
 ADD_CUSTOM_TARGET(distclean 
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/distclean.cmake
 )
+
+# Uninstall target
+if(NOT TARGET uninstall)
+  CONFIGURE_FILE(
+    "${CMAKE_MODULE_PATH}/ConfigUninstall.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+    IMMEDIATE @ONLY)
+
+  ADD_CUSTOM_TARGET(uninstall
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+    "${PROJECT_NAME}/${TMP_MODULE_NAME}" "${PROJECT_NAME}.pc" )
+  
+ENDIF()

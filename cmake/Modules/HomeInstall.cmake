@@ -26,8 +26,8 @@ MESSAGE( STATUS
 >>${Red}USER INSTALLATION${ColourReset}:
 ${Yellow}(if you are regular user of a machine, any of the followings will give you access to the library)${ColourReset}
 Pick ONE choice or add in your bash profile (i.e. ~/.bashrc):
-${Green}A. source the config script: ${LIB_TARGET_BIN}/library_config.sh, i.e.${ColourReset}:
-   $ source ${LIB_TARGET_BIN}/scifor_config_user.sh
+${Green}A. source the config script in ${LIB_TARGET_ETC}, i.e.${ColourReset}:
+   $ source ${LIB_TARGET_ETC}/dmft_ed_config.sh
 
 ${Green}B. use the provided ${PROJECT_NAME} environment module in ${LIB_TARGET_ETC}, i.e.${ColourReset}:
    $ module use $HOME/.modules.d

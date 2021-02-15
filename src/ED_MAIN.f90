@@ -1,4 +1,6 @@
 module ED_MAIN
+  USE SF_IOTOOLS, only: str,reg
+  USE SF_TIMER,only: start_timer,stop_timer
   USE ED_INPUT_VARS
   USE ED_VARS_GLOBAL
   USE ED_EIGENSPACE, only: state_list,es_delete_espace,delete_eigenspace
@@ -11,8 +13,7 @@ module ED_MAIN
   USE ED_CHI_FUNCTIONS
   USE ED_OBSERVABLES
   USE ED_DIAG
-  USE SF_IOTOOLS, only: str,reg
-  USE SF_TIMER,only: start_timer,stop_timer
+
   implicit none
   private
   !
@@ -61,7 +62,7 @@ contains
   !+-----------------------------------------------------------------------------+!
   subroutine ed_init_solver_single(bath,Hloc)
     real(8),dimension(:),intent(inout) :: bath
-    complex(8),intent(in),optional     :: Hloc(Nspin,Nspin,Norb,Norb)
+    real(8),intent(in),optional        :: Hloc(Nspin,Nspin,Norb,Norb)
     logical                            :: check 
     logical,save                       :: isetup=.true.
     integer                            :: i
@@ -83,11 +84,7 @@ contains
        endif
     endif
     !
-    if(present(Hloc))then
-       check = check_bath_dimension(bath,dreal(Hloc))
-    else
-       check = check_bath_dimension(bath)
-    endif
+    check = check_bath_dimension(bath)
     if(.not.check)stop "init_ed_solver_single error: wrong bath dimensions"
     !
     bath = 0d0
@@ -108,7 +105,7 @@ contains
   subroutine ed_init_solver_single_mpi(MpiComm,bath,Hloc)
     integer                            :: MpiComm
     real(8),dimension(:),intent(inout) :: bath
-    complex(8),intent(in),optional     :: Hloc(Nspin,Nspin,Norb,Norb)
+    real(8),intent(in),optional        :: Hloc(Nspin,Nspin,Norb,Norb)
     logical                            :: check 
     logical,save                       :: isetup=.true.
     integer                            :: i
@@ -132,18 +129,13 @@ contains
        endif
     endif
     !
-    if(present(Hloc))then
-       check = check_bath_dimension(bath,dreal(Hloc))
-    else
-       check = check_bath_dimension(bath)
-    endif
+    check = check_bath_dimension(bath)
     if(.not.check)stop "init_ed_solver_single error: wrong bath dimensions"
     !
     bath = 0d0
     !
     call allocate_dmft_bath(dmft_bath)
     call init_dmft_bath(dmft_bath)
-    !call write_dmft_bath(dmft_bath,LOGfile)
     call get_dmft_bath(dmft_bath,bath)
     !
     if(isetup)then
@@ -169,14 +161,15 @@ contains
   !+-----------------------------------------------------------------------------+!
   subroutine ed_init_solver_lattice(bath,Hloc)
     real(8),dimension(:,:)         :: bath ![Nlat][:]
-    complex(8),intent(in)          :: Hloc(size(bath,1),Nspin,Nspin,Norb,Norb)
-    integer                        :: ilat,Nineq,Nsect
+    real(8),intent(in)             :: Hloc(size(bath,1),Nspin,Nspin,Norb,Norb)
+    integer                        :: ilat,Nineq
     logical                        :: check_dim
     character(len=5)               :: tmp_suffix
     integer                        :: MPI_ERR
     !
     !
     Nineq = size(bath,1)
+    !
     do ilat=1,Nineq             !all nodes check the bath, u never know...
        !
        ed_file_suffix=reg(ineq_site_suffix)//str(ilat,site_indx_padding)
@@ -185,13 +178,11 @@ contains
        !
     end do
     !
-    Nsect = Nsectors !get_Nsectors() !< get # sectors to allocate the following array
-    if(allocated(neigen_sectorii))deallocate(neigen_sectorii) ; allocate(neigen_sectorii(Nineq,Nsect))
-    if(allocated(neigen_totalii))deallocate(neigen_totalii) ; allocate(neigen_totalii(Nineq))
+    call ineq_memory_allocation(Nineq)
     !
     do ilat=1,Nineq             !all nodes check the bath, u never know...
-       neigen_sectorii(ilat,:) = neigen_sector(:)
-       neigen_totalii(ilat)    = lanc_nstates_total
+       neigen_sector_ineq(ilat,:) = neigen_sector(:)
+       neigen_total_ineq(ilat)    = lanc_nstates_total
     end do
     !
     ed_file_suffix=""
@@ -202,7 +193,7 @@ contains
   subroutine ed_init_solver_lattice_mpi(MpiComm,bath,Hloc)
     integer                        :: MpiComm
     real(8),dimension(:,:)         :: bath ![Nlat][:]
-    complex(8),intent(in)          :: Hloc(size(bath,1),Nspin,Nspin,Norb,Norb)
+    real(8),intent(in)             :: Hloc(size(bath,1),Nspin,Nspin,Norb,Norb)
     integer                        :: ilat,Nineq,Nsect
     logical                        :: check_dim
     character(len=5)               :: tmp_suffix
@@ -210,22 +201,20 @@ contains
     !
     !
     Nineq = size(bath,1)
+    !
     do ilat=1,Nineq             !all nodes check the bath, u never know...
        !
        ed_file_suffix=reg(ineq_site_suffix)//str(ilat,site_indx_padding)
        !
-       ! call ed_init_solver_single_mpi(MpiComm,bath(ilat,:),Hloc(ilat,:,:,:,:))
        call ed_init_solver_single(bath(ilat,:),Hloc(ilat,:,:,:,:))
        !
     end do
-    if(allocated(neigen_sectorii))deallocate(neigen_sectorii)
-    if(allocated(neigen_totalii))deallocate(neigen_totalii)
-    allocate(neigen_sectorii(Nineq,Nsectors))
-    allocate(neigen_totalii(Nineq))
+    !
+    call ineq_memory_allocation(Nineq)
     !
     do ilat=1,Nineq             !all nodes check the bath, u never know...
-       neigen_sectorii(ilat,:) = neigen_sector(:)
-       neigen_totalii(ilat)    = lanc_nstates_total
+       neigen_sector_ineq(ilat,:) = neigen_sector(:)
+       neigen_total_ineq(ilat)    = lanc_nstates_total
     end do
     !
     call MPI_Barrier(MpiComm,MPI_ERR)
@@ -259,7 +248,7 @@ contains
   !+-----------------------------------------------------------------------------+!
   subroutine ed_solve_single(bath,Hloc,sflag)
     real(8),dimension(:),intent(in) :: bath
-    complex(8),optional,intent(in)  :: Hloc(Nspin,Nspin,Norb,Norb)
+    real(8),optional,intent(in)     :: Hloc(Nspin,Nspin,Norb,Norb)
     logical,optional                :: sflag
     logical                         :: check,iflag
     !
@@ -269,11 +258,7 @@ contains
     !
     if(present(Hloc).AND.(bath_type/="replica"))call set_Hloc(Hloc)
     !
-    if(present(Hloc))then
-       check = check_bath_dimension(bath,dreal(Hloc))
-    else
-       check = check_bath_dimension(bath)
-    endif
+    check = check_bath_dimension(bath)
     if(.not.check)stop "ED_SOLVE_SINGLE Error: wrong bath dimensions"
     !
     call allocate_dmft_bath(dmft_bath)
@@ -311,7 +296,7 @@ contains
   subroutine ed_solve_single_mpi(MpiComm,bath,Hloc,sflag)
     integer                         :: MpiComm
     real(8),dimension(:),intent(in) :: bath
-    complex(8),optional,intent(in)  :: Hloc(Nspin,Nspin,Norb,Norb)
+    real(8),optional,intent(in)     :: Hloc(Nspin,Nspin,Norb,Norb)
     logical,optional                :: sflag
     logical                         :: check,iflag
     !
@@ -324,11 +309,7 @@ contains
     !
     if(present(Hloc).AND.(bath_type/="replica"))call set_Hloc(Hloc)
     !
-    if(present(Hloc))then
-       check = check_bath_dimension(bath,dreal(Hloc))
-    else
-       check = check_bath_dimension(bath)
-    endif
+    check = check_bath_dimension(bath)
     if(.not.check)stop "ED_SOLVE_SINGLE Error: wrong bath dimensions"
     !
     call allocate_dmft_bath(dmft_bath)
@@ -371,117 +352,82 @@ contains
   !+-----------------------------------------------------------------------------+!
   !                          INEQUIVALENT SITES                                   !
   !+-----------------------------------------------------------------------------+!
-  subroutine ed_solve_lattice(bath,Hloc,Uloc_ii,Ust_ii,Jh_ii)
+  subroutine ed_solve_lattice(bath,Hloc,Uloc_ii,Ust_ii,Jh_ii,Jp_ii,Jx_ii)
     !inputs
     real(8)          :: bath(:,:) ![Nlat][Nb]
-    complex(8)       :: Hloc(size(bath,1),Nspin,Nspin,Norb,Norb)
+    real(8)          :: Hloc(size(bath,1),Nspin,Nspin,Norb,Norb)
     real(8),optional :: Uloc_ii(size(bath,1),Norb)
     real(8),optional :: Ust_ii(size(bath,1))
     real(8),optional :: Jh_ii(size(bath,1))
+    real(8),optional :: Jp_ii(size(bath,1))
+    real(8),optional :: Jx_ii(size(bath,1))
     ! 
     integer          :: i,j,ilat,iorb,jorb,ispin,jspin
-    integer          :: Nsites
+    integer          :: Nineq
     logical          :: check_dim
     character(len=5) :: tmp_suffix
     !
     logical          :: MPI_MASTER=.true.
     !
     ! Check dimensions !
-    Nsites=size(bath,1)
+    Nineq=size(bath,1)
     !
-    !Allocate the local static observarbles global to the module
-    !One can retrieve these values from suitable routines later on
-    if(allocated(nii))deallocate(nii)
-    if(allocated(dii))deallocate(dii)
-    if(allocated(mii))deallocate(mii)
-    if(allocated(eii))deallocate(eii)
-    if(allocated(ddii))deallocate(ddii)
-    allocate(nii(Nsites,Norb))
-    allocate(dii(Nsites,Norb))
-    allocate(mii(Nsites,Norb))
-    allocate(eii(Nsites,4))
-    allocate(ddii(Nsites,4))
-    !
-    !Allocate the self-energies global to the module
-    !Once can retrieve these functinos from suitable routines later on
-    if(allocated(Smatsii))deallocate(Smatsii)
-    if(allocated(Srealii))deallocate(Srealii)
-    allocate(Smatsii(Nsites,Nspin,Nspin,Norb,Norb,Lmats))
-    allocate(Srealii(Nsites,Nspin,Nspin,Norb,Norb,Lreal))
-    !
-    !Allocate the imp GF global to the module
-    !Once can retrieve these functinos from suitable routines later on
-    if(allocated(Gmatsii))deallocate(Gmatsii)
-    if(allocated(Grealii))deallocate(Grealii)
-    allocate(Gmatsii(Nsites,Nspin,Nspin,Norb,Norb,Lmats))
-    allocate(Grealii(Nsites,Nspin,Nspin,Norb,Norb,Lreal))
-    !
-    !Allocate the imp GF_0 global to the module
-    !Once can retrieve these functinos from suitable routines later on
-    if(allocated(G0matsii))deallocate(G0matsii)
-    if(allocated(G0realii))deallocate(G0realii)
-    allocate(G0matsii(Nsites,Nspin,Nspin,Norb,Norb,Lmats))
-    allocate(G0realii(Nsites,Nspin,Nspin,Norb,Norb,Lreal))
-    !
-    !Allocate the imp dm and related observables
-    if(allocated(imp_density_matrix_ii))deallocate(imp_density_matrix_ii)
-    allocate(imp_density_matrix_ii(Nsites,Nspin,Nspin,Norb,Norb))
-    !
-    if(size(neigen_sectorii,1)<Nsites)stop "ed_solve_lattice error: size(neigen_sectorii,1)<Nsites"
-    if(size(neigen_totalii)<Nsites)stop "ed_solve_lattice error: size(neigen_totalii,1)<Nsites"
+    if(size(neigen_sector_ineq,1)<Nineq)stop "ed_solve_lattice error: size(neigen_sector_ineq,1)<Nineq"
+    if(size(neigen_total_ineq)<Nineq)stop "ed_solve_lattice error: size(neigen_total_ineq,1)<Nineq"
     !
     !Check the dimensions of the bath are ok:
-    do ilat=1,Nsites
+    do ilat=1,Nineq
        check_dim = check_bath_dimension(bath(ilat,:))
        if(.not.check_dim) stop "init_lattice_bath: wrong bath size dimension 1 or 2 "
     end do
-    Smatsii  = zero 
-    Srealii  = zero 
-    Gmatsii  = zero 
-    Grealii  = zero
-    G0matsii  = zero 
-    G0realii  = zero 
-    nii      = 0d0  
-    dii      = 0d0  
-    mii      = 0d0  
-    eii      = 0d0  
-    ddii     = 0d0 
-    imp_density_matrix_ii = zero
+    Smats_ineq    = zero 
+    Sreal_ineq    = zero 
+    Gmats_ineq    = zero 
+    Greal_ineq    = zero 
+    Dmats_ph_ineq = zero 
+    Dreal_ph_ineq = zero 
+    dens_ineq     = 0d0  
+    docc_ineq     = 0d0  
+    mag_ineq      = 0d0  
+    e_ineq        = 0d0  
+    dd_ineq       = 0d0 
+    imp_density_matrix_ineq = zero
     !
     call start_timer
     !
-    do ilat = 1, Nsites
+    do ilat = 1, Nineq
        write(LOGfile,*)" SOLVING INEQ SITE: "//str(ilat,Npad=4)
        !
        ed_file_suffix=reg(ineq_site_suffix)//str(ilat,site_indx_padding)
        !
        !If required set the local value of U per each site
        if(present(Uloc_ii))Uloc(1:Norb) = Uloc_ii(ilat,1:Norb)
-       if(present(Ust_ii)) Ust          = Ust_ii(ilat) 
-       if(present(Jh_ii))  Jh           = Jh_ii(ilat) 
+       if(present(Ust_ii)) Ust = Ust_ii(ilat)
+       if(present(Jh_ii))  Jh  = Jh_ii(ilat)
+       if(present(Jp_ii))  Jp  = Jp_ii(ilat)
+       if(present(Jx_ii))  Jx  = Jx_ii(ilat)
        !
        !Solve the impurity problem for the ilat-th site
-       neigen_sector(:)   = neigen_sectorii(ilat,:)
-       lanc_nstates_total = neigen_totalii(ilat)
+       neigen_sector(:)   = neigen_sector_ineq(ilat,:)
+       lanc_nstates_total = neigen_total_ineq(ilat)
        !
        !Call ed_solve in SERIAL MODE!! This is parallel on the ineq. sites
        call ed_solve_single(bath(ilat,:),Hloc(ilat,:,:,:,:))
        !
-       neigen_sectorii(ilat,:)  = neigen_sector(:)
-       neigen_totalii(ilat)     = lanc_nstates_total
-       Smatsii(ilat,:,:,:,:,:)  = impSmats(:,:,:,:,:)
-       Srealii(ilat,:,:,:,:,:)  = impSreal(:,:,:,:,:)
-       Gmatsii(ilat,:,:,:,:,:)  = impGmats(:,:,:,:,:)
-       Grealii(ilat,:,:,:,:,:)  = impGreal(:,:,:,:,:)
-       G0matsii(ilat,:,:,:,:,:) = impG0mats(:,:,:,:,:)
-       G0realii(ilat,:,:,:,:,:) = impG0real(:,:,:,:,:)
-       nii(ilat,1:Norb)         = ed_dens(1:Norb)
-       dii(ilat,1:Norb)         = ed_docc(1:Norb)
-       mii(ilat,1:Norb)         = ed_dens_up(1:Norb)-ed_dens_dw(1:Norb)
-       eii(ilat,:)              = [ed_Epot,ed_Eint,ed_Ehartree,ed_Eknot]
-       ddii(ilat,:)             = [ed_Dust,ed_Dund,ed_Dse,ed_Dph]
-       !
-       imp_density_matrix_ii(ilat,:,:,:,:) = imp_density_matrix(:,:,:,:)
+       neigen_sector_ineq(ilat,:)  = neigen_sector(:)
+       neigen_total_ineq(ilat)     = lanc_nstates_total
+       Smats_ineq(ilat,:,:,:,:,:)  = impSmats(:,:,:,:,:)
+       Sreal_ineq(ilat,:,:,:,:,:)  = impSreal(:,:,:,:,:)
+       Gmats_ineq(ilat,:,:,:,:,:)  = impGmats(:,:,:,:,:)
+       Greal_ineq(ilat,:,:,:,:,:)  = impGreal(:,:,:,:,:)
+       Dmats_ph_ineq(ilat,:)       = impDmats_ph(:)
+       Dreal_ph_ineq(ilat,:)       = impDreal_ph(:)
+       dens_ineq(ilat,1:Norb)      = ed_dens(1:Norb)
+       docc_ineq(ilat,1:Norb)      = ed_docc(1:Norb)
+       mag_ineq(ilat,:,1:Norb)     = ed_mag(:,1:Norb)
+       e_ineq(ilat,:)              = [ed_Epot,ed_Eint,ed_Ehartree,ed_Eknot]
+       dd_ineq(ilat,:)             = [ed_Dust,ed_Dund,ed_Dse,ed_Dph]
+       imp_density_matrix_ineq(ilat,:,:,:,:) = imp_density_matrix(:,:,:,:)
        !
     enddo
     !
@@ -494,35 +440,38 @@ contains
 
   !FALL BACK: DO A VERSION THAT DOES THE SITES IN PARALLEL USING SERIAL ED CODE
 #ifdef _MPI
-  subroutine ed_solve_lattice_mpi(MpiComm,bath,Hloc,Uloc_ii,Ust_ii,Jh_ii)
+  subroutine ed_solve_lattice_mpi(MpiComm,bath,Hloc,mpi_lanc,Uloc_ii,Ust_ii,Jh_ii,Jp_ii,Jx_ii)
     integer          :: MpiComm
     !inputs
     real(8)          :: bath(:,:) ![Nlat][Nb]
-    complex(8)       :: Hloc(size(bath,1),Nspin,Nspin,Norb,Norb)
+    real(8)          :: Hloc(size(bath,1),Nspin,Nspin,Norb,Norb)
+    logical,optional :: mpi_lanc
     real(8),optional :: Uloc_ii(size(bath,1),Norb)
     real(8),optional :: Ust_ii(size(bath,1))
     real(8),optional :: Jh_ii(size(bath,1))
+    real(8),optional :: Jp_ii(size(bath,1))
+    real(8),optional :: Jx_ii(size(bath,1))
     !MPI  auxiliary vars
     complex(8)       :: Smats_tmp(size(bath,1),Nspin,Nspin,Norb,Norb,Lmats)
     complex(8)       :: Sreal_tmp(size(bath,1),Nspin,Nspin,Norb,Norb,Lreal)
     complex(8)       :: Gmats_tmp(size(bath,1),Nspin,Nspin,Norb,Norb,Lmats)
     complex(8)       :: Greal_tmp(size(bath,1),Nspin,Nspin,Norb,Norb,Lreal)
-    complex(8)       :: G0mats_tmp(size(bath,1),Nspin,Nspin,Norb,Norb,Lmats)
-    complex(8)       :: G0real_tmp(size(bath,1),Nspin,Nspin,Norb,Norb,Lreal)
-    real(8)          :: nii_tmp(size(bath,1),Norb)
-    real(8)          :: dii_tmp(size(bath,1),Norb)
-    real(8)          :: mii_tmp(size(bath,1),Norb)
-    real(8)          :: eii_tmp(size(bath,1),4)
-    real(8)          :: ddii_tmp(size(bath,1),4)
-    !
+    complex(8)       :: Dmats_tmp(size(bath,1),Lmats)
+    complex(8)       :: Dreal_tmp(size(bath,1),Lreal)
+    real(8)          :: dens_tmp(size(bath,1),Norb)
+    real(8)          :: docc_tmp(size(bath,1),Norb)
+    real(8)          :: mag_tmp(size(bath,1),3,Norb)
+    real(8)          :: e_tmp(size(bath,1),4)
+    real(8)          :: dd_tmp(size(bath,1),4)
+    !    
     complex(8)       :: imp_density_matrix_tmp(size(bath,1),Nspin,Nspin,Norb,Norb)
     !
     integer          :: neigen_sectortmp(size(bath,1),Nsectors)
     integer          :: neigen_totaltmp(size(bath,1))
     ! 
     integer          :: i,j,ilat,iorb,jorb,ispin,jspin
-    integer          :: Nsites
-    logical          :: check_dim
+    integer          :: Nineq
+    logical          :: check_dim,mpi_lanc_
     character(len=5) :: tmp_suffix
     !
     integer          :: MPI_ID=0
@@ -535,148 +484,181 @@ contains
     MPI_SIZE   = get_Size_MPI(MpiComm)
     MPI_MASTER = get_Master_MPI(MpiComm)
     !
+    mpi_lanc_=.false.;if(present(mpi_lanc))mpi_lanc_=mpi_lanc
+    !
     ! Check dimensions !
-    Nsites=size(bath,1)
+    Nineq=size(bath,1)
     !
-    !Allocate the local static observarbles global to the module
-    !One can retrieve these values from suitable routines later on
-    if(allocated(nii))deallocate(nii)
-    if(allocated(dii))deallocate(dii)
-    if(allocated(mii))deallocate(mii)
-    if(allocated(eii))deallocate(eii)
-    if(allocated(ddii))deallocate(ddii)
-    allocate(nii(Nsites,Norb))
-    allocate(dii(Nsites,Norb))
-    allocate(mii(Nsites,Norb))
-    allocate(eii(Nsites,4))
-    allocate(ddii(Nsites,4))
+    if(size(neigen_sector_ineq,1)<Nineq)stop "ed_solve_lattice error: size(neigen_sectorii,1)<Nineq"
+    if(size(neigen_total_ineq)<Nineq)stop "ed_solve_lattice error: size(neigen_totalii,1)<Nineq"
     !
-    !Allocate the self-energies global to the module
-    !Once can retrieve these functinos from suitable routines later on
-    if(allocated(Smatsii))deallocate(Smatsii)
-    if(allocated(Srealii))deallocate(Srealii)
-    allocate(Smatsii(Nsites,Nspin,Nspin,Norb,Norb,Lmats))
-    allocate(Srealii(Nsites,Nspin,Nspin,Norb,Norb,Lreal))
-    !
-    !Allocate the imp GF global to the module
-    !Once can retrieve these functinos from suitable routines later on
-    if(allocated(Gmatsii))deallocate(Gmatsii)
-    if(allocated(Grealii))deallocate(Grealii)
-    allocate(Gmatsii(Nsites,Nspin,Nspin,Norb,Norb,Lmats))
-    allocate(Grealii(Nsites,Nspin,Nspin,Norb,Norb,Lreal))
-    !
-    !Allocate the imp GF global to the module
-    !Once can retrieve these functinos from suitable routines later on
-    if(allocated(G0matsii))deallocate(G0matsii)
-    if(allocated(G0realii))deallocate(G0realii)
-    allocate(G0matsii(Nsites,Nspin,Nspin,Norb,Norb,Lmats))
-    allocate(G0realii(Nsites,Nspin,Nspin,Norb,Norb,Lreal))
-    !
-    !Allocate the imp dm and related observables
-    if(allocated(imp_density_matrix_ii))deallocate(imp_density_matrix_ii)
-    allocate(imp_density_matrix_ii(Nsites,Nspin,Nspin,Norb,Norb))
-    !
-    if(size(neigen_sectorii,1)<Nsites)stop "ed_solve_lattice error: size(neigen_sectorii,1)<Nsites"
-    if(size(neigen_totalii)<Nsites)stop "ed_solve_lattice error: size(neigen_totalii,1)<Nsites"
-    neigen_sectortmp = 0
-    neigen_totaltmp  = 0
-    !
-    !Check the dimensions of the bath are ok:
-    do ilat=1+MPI_ID,Nsites,MPI_SIZE
+    !Check the dimensions of the bath are ok.
+    !This can always be done in parallel no issues with mpi_lanc
+    do ilat=1+MPI_ID,Nineq,MPI_SIZE
        check_dim = check_bath_dimension(bath(ilat,:))
        if(.not.check_dim) stop "init_lattice_bath: wrong bath size dimension 1 or 2 "
     end do
-    Smats_tmp  = zero
-    Sreal_tmp  = zero
-    Gmats_tmp  = zero
-    Greal_tmp  = zero
-    G0mats_tmp = zero
-    G0real_tmp = zero
-    nii_tmp    = 0d0
-    dii_tmp    = 0d0
-    mii_tmp    = 0d0
-    eii_tmp    = 0d0
-    ddii_tmp   = 0d0
+    !
+    Smats_ineq    = zero ; Sreal_ineq    = zero
+    Gmats_ineq    = zero ; Greal_ineq    = zero
+    Dmats_ph_ineq = zero ; Dreal_ph_ineq = zero 
+    dens_ineq     = 0d0  ; docc_ineq     = 0d0
+    mag_ineq      = 0d0
+    e_ineq        = 0d0  ; dd_ineq       = 0d0 
+    neigen_sector_ineq=0 ; neigen_total_ineq =0
+    imp_density_matrix_ineq = zero
+    !
+    Smats_tmp  = zero ; Sreal_tmp  = zero
+    Gmats_tmp  = zero ; Greal_tmp  = zero
+    Dmats_tmp  = zero ; Dreal_tmp  = zero
+    dens_tmp   = 0d0  ; docc_tmp   = 0d0
+    mag_tmp    = 0d0  ; 
+    e_tmp      = 0d0  ; dd_tmp     = 0d0
+    neigen_sectortmp = 0
+    neigen_totaltmp  = 0
     imp_density_matrix_tmp = zero
     !
-    if(MPI_MASTER)call start_timer
-    !
-    do ilat = 1 + MPI_ID, Nsites, MPI_SIZE
-       write(LOGfile,*)str(MPI_ID)//" SOLVES INEQ SITE: "//str(ilat,Npad=4)
+    select case(mpi_lanc_)
+    case default              !mpi_lanc=False => solve sites with MPI
+       if(MPI_MASTER)call start_timer
+       do ilat = 1 + MPI_ID, Nineq, MPI_SIZE
+          write(LOGfile,*)str(MPI_ID)//" SOLVES INEQ SITE: "//str(ilat,Npad=4)
+          !
+          ed_file_suffix=reg(ineq_site_suffix)//str(ilat,site_indx_padding)
+          !
+          !If required set the local value of U per each site
+          if(present(Uloc_ii))Uloc(1:Norb) = Uloc_ii(ilat,1:Norb)
+          if(present(Ust_ii)) Ust = Ust_ii(ilat)
+          if(present(Jh_ii))  Jh  = Jh_ii(ilat)
+          if(present(Jp_ii))  Jp  = Jp_ii(ilat)
+          if(present(Jx_ii))  Jx  = Jx_ii(ilat)
+          !
+          !Solve the impurity problem for the ilat-th site
+          neigen_sector(:)   = neigen_sector_ineq(ilat,:)
+          lanc_nstates_total = neigen_total_ineq(ilat)
+          !
+          !Call ed_solve in SERIAL MODE!! This is parallel on the ineq. sites
+          call ed_solve_single(bath(ilat,:),Hloc(ilat,:,:,:,:))
+          !
+          neigen_sectortmp(ilat,:)   = neigen_sector(:)
+          neigen_totaltmp(ilat)      = lanc_nstates_total
+          Smats_tmp(ilat,:,:,:,:,:)  = impSmats(:,:,:,:,:)
+          Sreal_tmp(ilat,:,:,:,:,:)  = impSreal(:,:,:,:,:)
+          Gmats_tmp(ilat,:,:,:,:,:)  = impGmats(:,:,:,:,:)
+          Greal_tmp(ilat,:,:,:,:,:)  = impGreal(:,:,:,:,:)
+          Dmats_tmp(ilat,:)          = impDmats_ph(:)
+          Dreal_tmp(ilat,:)          = impDreal_ph(:)
+          dens_tmp(ilat,1:Norb)      = ed_dens(1:Norb)
+          docc_tmp(ilat,1:Norb)      = ed_docc(1:Norb)
+          mag_tmp(ilat,:,1:Norb)     = ed_mag(:,1:Norb)
+          e_tmp(ilat,:)              = [ed_Epot,ed_Eint,ed_Ehartree,ed_Eknot]
+          dd_tmp(ilat,:)             = [ed_Dust,ed_Dund,ed_Dse,ed_Dph]
+          imp_density_matrix_tmp(ilat,:,:,:,:) = imp_density_matrix(:,:,:,:)
+       enddo
+       call MPI_Barrier(MpiComm,MPI_ERR)
+       if(MPI_MASTER)call stop_timer(unit=LOGfile)
+       ed_file_suffix=""
        !
-       ed_file_suffix=reg(ineq_site_suffix)//str(ilat,site_indx_padding)
+       call AllReduce_MPI(MpiComm,Smats_tmp,Smats_ineq)
+       call AllReduce_MPI(MpiComm,Sreal_tmp,Sreal_ineq)
+       call AllReduce_MPI(MpiComm,Gmats_tmp,Gmats_ineq)
+       call AllReduce_MPI(MpiComm,Greal_tmp,Greal_ineq)
+       call AllReduce_MPI(MpiComm,Dmats_tmp,Dmats_ph_ineq)
+       call AllReduce_MPI(MpiComm,Dreal_tmp,Dreal_ph_ineq)
+       call AllReduce_MPI(MpiComm,dens_tmp,dens_ineq)
+       call AllReduce_MPI(MpiComm,docc_tmp,docc_ineq)
+       call AllReduce_MPI(MpiComm,mag_tmp,mag_ineq)
+       call AllReduce_MPI(MpiComm,e_tmp,e_ineq)
+       call AllReduce_MPI(MpiComm,dd_tmp,dd_ineq)
+       call AllReduce_MPI(MpiComm,imp_density_matrix_tmp,imp_density_matrix_ineq)
+       call AllReduce_MPI(MpiComm,neigen_sectortmp,neigen_sector_ineq)
+       call AllReduce_MPI(MpiComm,neigen_totaltmp,neigen_total_ineq)
        !
-       !If required set the local value of U per each site
-       if(present(Uloc_ii))Uloc(1:Norb) = Uloc_ii(ilat,1:Norb)
-       if(present(Ust_ii)) Ust          = Ust_ii(ilat) 
-       if(present(Jh_ii))  Jh           = Jh_ii(ilat) 
-       !
-       !Solve the impurity problem for the ilat-th site
-       neigen_sector(:)   = neigen_sectorii(ilat,:)
-       lanc_nstates_total = neigen_totalii(ilat)
-       !
-       !Call ed_solve in SERIAL MODE!! This is parallel on the ineq. sites
-       call ed_solve_single(bath(ilat,:),Hloc(ilat,:,:,:,:))
-       !
-       neigen_sectortmp(ilat,:)   = neigen_sector(:)
-       neigen_totaltmp(ilat)      = lanc_nstates_total
-       Smats_tmp(ilat,:,:,:,:,:)  = impSmats(:,:,:,:,:)
-       Sreal_tmp(ilat,:,:,:,:,:)  = impSreal(:,:,:,:,:)
-       Gmats_tmp(ilat,:,:,:,:,:)  = impGmats(:,:,:,:,:)
-       Greal_tmp(ilat,:,:,:,:,:)  = impGreal(:,:,:,:,:)
-       G0mats_tmp(ilat,:,:,:,:,:) = impG0mats(:,:,:,:,:)
-       G0real_tmp(ilat,:,:,:,:,:) = impG0real(:,:,:,:,:)
-       nii_tmp(ilat,1:Norb)       = ed_dens(1:Norb)
-       dii_tmp(ilat,1:Norb)       = ed_docc(1:Norb)
-       mii_tmp(ilat,1:Norb)       = ed_dens_up(1:Norb)-ed_dens_dw(1:Norb)
-       eii_tmp(ilat,:)            = [ed_Epot,ed_Eint,ed_Ehartree,ed_Eknot]
-       ddii_tmp(ilat,:)           = [ed_Dust,ed_Dund,ed_Dse,ed_Dph]
-       !
-       imp_density_matrix_tmp(ilat,:,:,:,:) = imp_density_matrix(:,:,:,:)
-       !
-    enddo
-    !
-    call MPI_Barrier(MpiComm,MPI_ERR)
-    !
-    if(MPI_MASTER)call stop_timer(unit=LOGfile)
-    !
-    ed_file_suffix=""
-    !
-    neigen_sectorii=0
-    neigen_totalii =0
-    !
-    Smatsii  = zero 
-    Srealii  = zero 
-    Gmatsii  = zero 
-    Grealii  = zero
-    G0matsii = zero 
-    G0realii = zero 
-    nii      = 0d0  
-    dii      = 0d0  
-    mii      = 0d0  
-    eii      = 0d0  
-    ddii     = 0d0  
-    imp_density_matrix_ii = zero
-    call MPI_ALLREDUCE(neigen_sectortmp,neigen_sectorii,Nsites*Nsectors,MPI_INTEGER,MPI_SUM,MpiComm,mpi_err)
-    call MPI_ALLREDUCE(neigen_totaltmp,neigen_totalii,Nsites,MPI_INTEGER,MPI_SUM,MpiComm,mpi_err)
-    call MPI_ALLREDUCE(Smats_tmp,Smatsii,Nsites*Nspin*Nspin*Norb*Norb*Lmats,MPI_DOUBLE_COMPLEX,MPI_SUM,MpiComm,mpi_err)
-    call MPI_ALLREDUCE(Sreal_tmp,Srealii,Nsites*Nspin*Nspin*Norb*Norb*Lreal,MPI_DOUBLE_COMPLEX,MPI_SUM,MpiComm,mpi_err)
-    call MPI_ALLREDUCE(Gmats_tmp,Gmatsii,Nsites*Nspin*Nspin*Norb*Norb*Lmats,MPI_DOUBLE_COMPLEX,MPI_SUM,MpiComm,mpi_err)
-    call MPI_ALLREDUCE(Greal_tmp,Grealii,Nsites*Nspin*Nspin*Norb*Norb*Lreal,MPI_DOUBLE_COMPLEX,MPI_SUM,MpiComm,mpi_err)
-    call MPI_ALLREDUCE(G0mats_tmp,G0matsii,Nsites*Nspin*Nspin*Norb*Norb*Lmats,MPI_DOUBLE_COMPLEX,MPI_SUM,MpiComm,mpi_err)
-    call MPI_ALLREDUCE(G0real_tmp,G0realii,Nsites*Nspin*Nspin*Norb*Norb*Lreal,MPI_DOUBLE_COMPLEX,MPI_SUM,MpiComm,mpi_err)
-    call MPI_ALLREDUCE(nii_tmp,nii,Nsites*Norb,MPI_DOUBLE_PRECISION,MPI_SUM,MpiComm,mpi_err)
-    call MPI_ALLREDUCE(dii_tmp,dii,Nsites*Norb,MPI_DOUBLE_PRECISION,MPI_SUM,MpiComm,mpi_err)
-    call MPI_ALLREDUCE(mii_tmp,mii,Nsites*Norb,MPI_DOUBLE_PRECISION,MPI_SUM,MpiComm,mpi_err)
-    call MPI_ALLREDUCE(eii_tmp,eii,Nsites*4,MPI_DOUBLE_PRECISION,MPI_SUM,MpiComm,mpi_err)
-    call MPI_ALLREDUCE(ddii_tmp,ddii,Nsites*4,MPI_DOUBLE_PRECISION,MPI_SUM,MpiComm,mpi_err)
-    call MPI_ALLREDUCE(imp_density_matrix_tmp,imp_density_matrix_ii,Nsites*Nspin*Nspin*Norb*Norb,MPI_DOUBLE_COMPLEX,MPI_SUM,MpiComm,mpi_err)
+       !       
+    case(.true.)                !solve sites serial, Lanczos with MPI
+       if(MPI_MASTER)call start_timer
+       do ilat = 1, Nineq
+          write(LOGfile,*)" SOLVES INEQ SITE: "//str(ilat,Npad=4)
+          ed_file_suffix=reg(ineq_site_suffix)//str(ilat,site_indx_padding)
+          !
+          !If required set the local value of U per each site
+          if(present(Uloc_ii))Uloc(1:Norb) = Uloc_ii(ilat,1:Norb)
+          if(present(Ust_ii)) Ust = Ust_ii(ilat)
+          if(present(Jh_ii))  Jh  = Jh_ii(ilat)
+          if(present(Jp_ii))  Jp  = Jp_ii(ilat)
+          if(present(Jx_ii))  Jx  = Jx_ii(ilat)
+          !
+          !Solve the impurity problem for the ilat-th site
+          neigen_sector(:)   = neigen_sector_ineq(ilat,:)
+          lanc_nstates_total = neigen_total_ineq(ilat)
+          !
+          !Call ed_solve in SERIAL MODE!! This is parallel on the ineq. sites
+          call ed_solve_single_mpi(MpiComm,bath(ilat,:),Hloc(ilat,:,:,:,:))
+          !
+          neigen_sector_ineq(ilat,:)  = neigen_sector(:)
+          neigen_total_ineq(ilat)     = lanc_nstates_total
+          Smats_ineq(ilat,:,:,:,:,:)  = impSmats(:,:,:,:,:)
+          Sreal_ineq(ilat,:,:,:,:,:)  = impSreal(:,:,:,:,:)
+          Gmats_ineq(ilat,:,:,:,:,:)  = impGmats(:,:,:,:,:)
+          Greal_ineq(ilat,:,:,:,:,:)  = impGreal(:,:,:,:,:)
+          Dmats_ph_ineq(ilat,:)       = impDmats_ph(:)
+          Dreal_ph_ineq(ilat,:)       = impDreal_ph(:)
+          dens_ineq(ilat,1:Norb)      = ed_dens(1:Norb)
+          docc_ineq(ilat,1:Norb)      = ed_docc(1:Norb)
+          mag_ineq(ilat,:,1:Norb)     = ed_mag(:,1:Norb)
+          e_ineq(ilat,:)              = [ed_Epot,ed_Eint,ed_Ehartree,ed_Eknot]
+          dd_ineq(ilat,:)             = [ed_Dust,ed_Dund,ed_Dse,ed_Dph]
+          imp_density_matrix_ineq(ilat,:,:,:,:) = imp_density_matrix(:,:,:,:)
+       enddo
+       if(MPI_MASTER)call stop_timer(unit=LOGfile)
+       ed_file_suffix=""
+    end select
     !
   end subroutine ed_solve_lattice_mpi
 #endif
 
 
 
+
+
+
+  subroutine ineq_memory_allocation(Nineq)
+    integer :: Nineq
+    if(allocated(dens_ineq))deallocate(dens_ineq)
+    if(allocated(docc_ineq))deallocate(docc_ineq)
+    if(allocated(mag_ineq))deallocate(mag_ineq)
+    if(allocated(e_ineq))deallocate(e_ineq)
+    if(allocated(dd_ineq))deallocate(dd_ineq)
+    if(allocated(Smats_ineq))deallocate(Smats_ineq)
+    if(allocated(Sreal_ineq))deallocate(Sreal_ineq)
+    if(allocated(Gmats_ineq))deallocate(Gmats_ineq)
+    if(allocated(Greal_ineq))deallocate(Greal_ineq)
+    if(allocated(Dmats_ph_ineq))deallocate(Dmats_ph_ineq)
+    if(allocated(Dreal_ph_ineq))deallocate(Dreal_ph_ineq)
+    if(allocated(imp_density_matrix_ineq))deallocate(imp_density_matrix_ineq)
+    if(allocated(neigen_sector_ineq))deallocate(neigen_sector_ineq)
+    if(allocated(neigen_total_ineq))deallocate(neigen_total_ineq)
+    !
+    allocate(dens_ineq(Nineq,Norb))
+    allocate(docc_ineq(Nineq,Norb))
+    allocate(mag_ineq(Nineq,3,Norb))
+    allocate(e_ineq(Nineq,4))
+    allocate(dd_ineq(Nineq,4))
+    !
+    allocate(Smats_ineq(Nineq,Nspin,Nspin,Norb,Norb,Lmats))
+    allocate(Sreal_ineq(Nineq,Nspin,Nspin,Norb,Norb,Lreal))
+    !
+    allocate(Gmats_ineq(Nineq,Nspin,Nspin,Norb,Norb,Lmats))
+    allocate(Greal_ineq(Nineq,Nspin,Nspin,Norb,Norb,Lreal))
+    !
+    allocate(Dmats_ph_ineq(Nineq,Lmats))
+    allocate(Dreal_ph_ineq(Nineq,Lreal))    
+    !
+    allocate(imp_density_matrix_ineq(Nineq,Nspin,Nspin,Norb,Norb))
+    !
+    allocate(neigen_sector_ineq(Nineq,Nsectors))
+    allocate(neigen_total_ineq(Nineq))
+  end subroutine ineq_memory_allocation
 
 end module ED_MAIN
 
@@ -686,35 +668,3 @@ end module ED_MAIN
 
 
 
-
-
-! subroutine ed_finalize
-!   deallocate(impHloc)
-!   deallocate(spH0ups)
-!   deallocate(spH0dws)
-!   !
-!   !Allocate indexing arrays
-!   deallocate(getCsector)
-!   deallocate(getCDGsector)
-!   !
-!   deallocate(impIndex)
-!   !
-!   deallocate(getDim)
-!   !
-!   deallocate(getBathStride)
-!   deallocate(twin_mask)
-!   deallocate(sectors_mask)
-!   deallocate(neigen_sector)
-!   deallocate(impSmats)
-!   deallocate(impSreal)
-!   deallocate(impGmats)
-!   deallocate(impGreal)
-!   deallocate(impG0mats)
-!   deallocate(impG0real)
-!   deallocate(ed_dens,ed_docc,ed_dens_up,ed_dens_dw)
-!   if(chiflag)then
-!      deallocate(spinChi_tau)
-!      deallocate(spinChi_w)
-!      deallocate(spinChi_iv)
-!   end if
-! end subroutine ed_finalize

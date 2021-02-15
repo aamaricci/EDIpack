@@ -8,25 +8,24 @@ MODULE ED_VARS_GLOBAL
   implicit none
 
 
-  !-------------------- H EXPANSION STRUCTURE ----------------------!
-  type H_operator
-     real(8),dimension(:,:,:,:),allocatable                  :: O          !Replica hamilt
-  end type H_operator
-  type(H_operator),dimension(:),allocatable                  :: H_basis
-  real(8),dimension(:),allocatable                           :: lambda_impHloc
+
 
 
 
   !-------------------- EFFECTIVE BATH STRUCTURE ----------------------!
+  type H_operator
+     real(8),dimension(:,:,:,:),allocatable                  :: O          !Replica hamilt
+  end type H_operator
+
   type effective_bath_component
-     integer                                                 :: N_dec
-     real(8),dimension(:),allocatable                        :: v     ![Nspin]
-     real(8),dimension(:),allocatable                        :: lambda
+     real(8)                                                 :: v
+     real(8),dimension(:),allocatable                        :: lambda![Nsym]
   end type effective_bath_component
 
   type effective_bath
      real(8),dimension(:,:,:),allocatable                    :: e     !local energies [Nspin][Norb][Nbath]/[Nspin][1][Nbath]_hybrid
      real(8),dimension(:,:,:),allocatable                    :: v     !spin-keep hyb. [Nspin][Norb][Nbath]
+     integer                                                 :: Nbasis  !H Basis dimension  
      type(effective_bath_component),dimension(:),allocatable :: item  ![Nbath] Replica bath components, V included
      logical                                                 :: status=.false.
   end type effective_bath
@@ -102,10 +101,6 @@ MODULE ED_VARS_GLOBAL
   integer,save                                       :: Ns_ud
   integer,save                                       :: DimPh    !Number of phonon states
 
-  !local part of the Hamiltonian
-  !INTERNAL USE (accessed thru functions)
-  !=========================================================
-  real(8),dimension(:,:,:,:),allocatable             :: impHloc           !local hamiltonian
 
   !Some maps between sectors and full Hilbert space (pointers)
   !PRIVATE:
@@ -122,6 +117,11 @@ MODULE ED_VARS_GLOBAL
   !PRIVATE
   !=========================================================
   type(effective_bath)                               :: dmft_bath
+  type(H_operator),dimension(:),allocatable          :: H_basis
+  real(8),dimension(:),allocatable                   :: lambda_impHloc
+  real(8),dimension(:,:,:,:),allocatable             :: impHloc           !local hamiltonian
+
+
 
 
   !Variables for DIAGONALIZATION
@@ -140,9 +140,6 @@ MODULE ED_VARS_GLOBAL
   !PRIVATE
   !=========================================================  
   integer,allocatable,dimension(:)                   :: neigen_sector
-  !--------------- LATTICE WRAP VARIABLES -----------------!  
-  integer,allocatable,dimension(:,:)                 :: neigen_sectorii
-  integer,allocatable,dimension(:)                   :: neigen_totalii
   logical                                            :: trim_state_list=.false.
 
   !Partition function
@@ -150,6 +147,7 @@ MODULE ED_VARS_GLOBAL
   !=========================================================
   real(8)                                            :: zeta_function
   real(8)                                            :: gs_energy
+
 
 
 
@@ -162,14 +160,6 @@ MODULE ED_VARS_GLOBAL
   complex(8),allocatable,dimension(:,:,:,:,:)        :: impGreal
   complex(8),allocatable,dimension(:,:,:,:,:)        :: impG0mats
   complex(8),allocatable,dimension(:,:,:,:,:)        :: impG0real
-  !--------------- LATTICE WRAP VARIABLES -----------------!
-  complex(8),dimension(:,:,:,:,:,:),allocatable,save :: Smatsii,Srealii          ![Nlat][Nspin][Nspin][Norb][Norb][L]
-  complex(8),dimension(:,:,:,:,:,:),allocatable,save :: Gmatsii,Grealii          ![Nlat][Nspin][Nspin][Norb][Norb][L]
-  complex(8),dimension(:,:,:,:,:,:),allocatable,save :: G0matsii,G0realii          ![Nlat][Nspin][Nspin][Norb][Norb][L]
-  complex(8),dimension(:,:,:,:,:)  ,allocatable,save :: imp_density_matrix_ii    ![Nlat][Nspin][Nspin][Norb][Norb]
-
-  !Impurity Green's function for phonons
-  !=========================================================
   complex(8),allocatable,dimension(:)                :: impDmats_ph
   complex(8),allocatable,dimension(:)                :: impDreal_ph
 
@@ -202,25 +192,16 @@ MODULE ED_VARS_GLOBAL
   !Density and double occupancy
   !PRIVATE (now public but accessible thru routines)
   !=========================================================
-  real(8),dimension(:),allocatable                   ::  ed_dens
-  real(8),dimension(:),allocatable                   ::  ed_dens_up,ed_dens_dw
-  real(8),dimension(:),allocatable                   ::  ed_docc
-  !--------------- LATTICE WRAP VARIABLES -----------------!
-  real(8),dimension(:,:),allocatable,save            ::  nii,dii,mii
-
-
-
-  !Local energies and generalized double occupancies
-  !PRIVATE (now public but accessible thru routine)
-  !=========================================================
+  real(8),dimension(:),allocatable                   :: ed_dens
+  real(8),dimension(:),allocatable                   :: ed_dens_up,ed_dens_dw
+  real(8),dimension(:),allocatable                   :: ed_docc
+  real(8),dimension(:,:),allocatable                 :: ed_mag
   real(8)                                            :: ed_Ekin
   real(8)                                            :: ed_Epot
   real(8)                                            :: ed_Eint
   real(8)                                            :: ed_Ehartree
   real(8)                                            :: ed_Eknot
   real(8)                                            :: ed_Dust,ed_Dund,ed_Dse,ed_Dph
-  !--------------- LATTICE WRAP VARIABLES -----------------!
-  real(8),dimension(:,:),allocatable,save            :: ddii,eii
 
 
 
@@ -236,6 +217,32 @@ MODULE ED_VARS_GLOBAL
 
 
 
+  !--------------- LATTICE WRAP VARIABLES -----------------!  
+  integer,allocatable,dimension(:,:)                 :: neigen_sectorii
+  integer,allocatable,dimension(:)                   :: neigen_totalii
+  complex(8),dimension(:,:,:,:,:,:),allocatable,save :: Smatsii,Srealii          ![Nlat][Nspin][Nspin][Norb][Norb][L]
+  complex(8),dimension(:,:,:,:,:,:),allocatable,save :: Gmatsii,Grealii          ![Nlat][Nspin][Nspin][Norb][Norb][L]
+  complex(8),dimension(:,:,:,:,:,:),allocatable,save :: G0matsii,G0realii          ![Nlat][Nspin][Nspin][Norb][Norb][L]
+  complex(8),dimension(:,:,:,:,:)  ,allocatable,save :: imp_density_matrix_ii    ![Nlat][Nspin][Nspin][Norb][Norb]
+  real(8),dimension(:,:),allocatable,save            ::  nii,dii,mii
+
+  real(8),dimension(:,:),allocatable,save            :: ddii,eii
+
+
+
+  !--------------- LATTICE WRAP VARIABLES -----------------!
+  complex(8),dimension(:,:,:,:,:,:),allocatable,save :: Smats_ineq,Sreal_ineq  ![Nlat,Nspin,Nspin,Norb,Norb,L]
+  complex(8),dimension(:,:,:,:,:,:),allocatable,save :: Gmats_ineq,Greal_ineq
+  complex(8),dimension(:,:,:,:,:,:),allocatable,save :: G0mats_ineq,G0real_ineq
+  complex(8),dimension(:,:),allocatable,save         :: Dmats_ph_ineq,Dreal_ph_ineq
+  complex(8),dimension(:,:,:,:,:),allocatable,save   :: imp_density_matrix_ineq
+  real(8),dimension(:,:),allocatable,save            :: dens_ineq 
+  real(8),dimension(:,:),allocatable,save            :: docc_ineq
+  real(8),dimension(:,:,:),allocatable,save          :: mag_ineq
+  real(8),dimension(:,:),allocatable,save            :: phisc_ineq
+  real(8),dimension(:,:),allocatable,save            :: dd_ineq,e_ineq
+  integer,allocatable,dimension(:,:)                 :: neigen_sector_ineq
+  integer,allocatable,dimension(:)                   :: neigen_total_ineq
 
   !File suffixes for printing fine tuning.
   !=========================================================

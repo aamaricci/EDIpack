@@ -41,12 +41,15 @@ MODULE ED_BATH
      module procedure orb_symmetrize_bath_lattice
   end interface orb_symmetrize_bath
 
-
   interface orb_equality_bath
      module procedure orb_equality_bath_site
      module procedure orb_equality_bath_lattice
   end interface orb_equality_bath
 
+  interface ph_symmetrize_bath
+     module procedure ph_symmetrize_bath_site
+     module procedure ph_symmetrize_bath_lattice
+  end interface ph_symmetrize_bath
 
   interface ph_trans_bath
      module procedure ph_trans_bath_site
@@ -54,12 +57,7 @@ MODULE ED_BATH
   end interface ph_trans_bath
 
 
-  interface ph_symmetrize_bath
-     module procedure ph_symmetrize_bath_site
-     module procedure ph_symmetrize_bath_lattice
-  end interface ph_symmetrize_bath
-
-
+  !Aux:
   interface is_identity
      module procedure ::  is_identity_so
      module procedure ::  is_identity_nn
@@ -72,20 +70,7 @@ MODULE ED_BATH
 
 
 
-  !##################################################################
-  !
-  !     DMFT BATH ROUTINES:
-  !
-  !##################################################################
-  public  :: allocate_dmft_bath               !INTERNAL (for effective_bath)
-  public  :: deallocate_dmft_bath             !INTERNAL (for effective_bath)
-  public  :: init_dmft_bath                   !INTERNAL (for effective_bath)
-  public  :: write_dmft_bath                  !INTERNAL (for effective_bath)
-  public  :: save_dmft_bath                   !INTERNAL (for effective_bath)
-  public  :: set_dmft_bath                    !INTERNAL (for effective_bath)
-  public  :: get_dmft_bath                    !INTERNAL (for effective_bath)
-  public  :: bath_from_sym                    !INTERNAL (for effective_bath)
-  public  :: mask_hloc
+
 
 
   !##################################################################
@@ -105,8 +90,29 @@ MODULE ED_BATH
   public  :: spin_symmetrize_bath
   public  :: orb_symmetrize_bath
   public  :: orb_equality_bath
-  public  :: ph_trans_bath
   public  :: ph_symmetrize_bath
+  public  :: ph_trans_bath
+
+
+
+
+
+  !##################################################################
+  !
+  !     DMFT BATH ROUTINES:
+  !
+  !##################################################################
+  public  :: allocate_dmft_bath               !INTERNAL (for effective_bath)
+  public  :: deallocate_dmft_bath             !INTERNAL (for effective_bath)
+  public  :: init_dmft_bath                   !INTERNAL (for effective_bath)
+  public  :: write_dmft_bath                  !INTERNAL (for effective_bath)
+  public  :: save_dmft_bath                   !INTERNAL (for effective_bath)
+  public  :: set_dmft_bath                    !INTERNAL (for effective_bath)
+  public  :: get_dmft_bath                    !INTERNAL (for effective_bath)
+  public  :: bath_from_sym                    !INTERNAL (for effective_bath)
+  public  :: mask_hloc
+
+
 
   integer :: ibath,ilat,iorb
 
@@ -153,51 +159,44 @@ contains
        else
           stop "ERROR: get_bath_dimension: bath_type=replica neither Hloc_nn present nor impHloc allocated"
        endif
-       counter=0
        !
        !Real part of nonzero elements
+       ndx=0
        do ispin=1,Nspin
           do jspin=1,Nspin
              do iorb=1,Norb
                 do jorb=1,Norb
                    io=index_stride_so(ispin,iorb)
                    jo=index_stride_so(jspin,jorb)
-                   if((Hloc(ispin,jspin,iorb,jorb).ne.0d0).and.(io.le.jo))then
-                      if(Hloc(ispin,jspin,iorb,jorb).ne.0.d0)counter=counter+1
-                   endif
+                   if(io > jo)cycle
+                   if((Hloc(ispin,jspin,iorb,jorb)/=0d0))ndx=ndx+1
                 enddo
              enddo
           enddo
        enddo
-       ndx   = counter         !all elements
-       ndx   = ndx + 1         !we also print n_Dec
-       !
-       !number of non vanishing elements for each replica
-       ndx = ndx * Nbath
-       !diagonal hybridizations: Vs
-       ndx = ndx + Nbath
-       !
+       ndx = ndx * Nbath !number of non vanishing elements for each replica
+       ndx = ndx + Nbath !diagonal hybridizations: Vs (different per spin)
+       ndx = ndx + 1     !we also print Nbasis
        bath_size = ndx
     end select
   end function get_bath_dimension_direct
 
   function get_bath_dimension_symmetries(Hloc_nn) result(bath_size)
-    real(8),dimension(:,:,:,:,:),intent(in) :: Hloc_nn
-    integer                                 :: bath_size,ndx,isym,Nsym
+    complex(8),dimension(:,:,:,:,:),intent(in) :: Hloc_nn
+    integer                                    :: bath_size,ndx,isym,Nsym
     !
     !number of symmetries
     Nsym=size(Hloc_nn,5)
     !
-    !add identity
     ndx=Nsym
-    !
-    !for each replica we also print N_dec
-    ndx=ndx+1
     !
     !number of replicas
     ndx = ndx * Nbath
     !diagonal hybridizations: Vs
     ndx = ndx + Nbath
+    !
+    !include Nbasis
+    ndx=ndx+1
     !
     bath_size = ndx
     !
@@ -226,7 +225,7 @@ contains
        do i=1,size(H_basis)
           Hbasis_rebuild(:,:,:,:,i)=H_basis(i)%O
        enddo
-       Ntrue   = get_bath_dimension(Hbasis_rebuild)
+       Ntrue   = get_bath_dimension(one*Hbasis_rebuild)
     end select
     bool  = ( size(bath_) == Ntrue )
   end function check_bath_dimension
@@ -236,13 +235,21 @@ contains
 
 
 
-  ! USER BATH ROUTINES:
+  !##################################################################
+  !
+  !     USER BATH ROUTINES:
+  !
+  !##################################################################
   include 'user_aux.f90'
 
 
 
 
-  ! DMFT BATH ROUTINES:
+  !##################################################################
+  !
+  !     DMFT BATH ROUTINES:
+  !
+  !##################################################################
   include 'dmft_aux.f90'
 
 
@@ -250,7 +257,11 @@ contains
 
 
 
-
+  !##################################################################
+  !
+  !     AUX FUNCTIONS:
+  !
+  !##################################################################
   !+-------------------------------------------------------------------+
   !PURPOSE  : Check if a matrix is the identity
   !+-------------------------------------------------------------------+

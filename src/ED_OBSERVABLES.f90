@@ -5,11 +5,12 @@ MODULE ED_OBSERVABLES
   USE SF_LINALG
   USE ED_INPUT_VARS
   USE ED_VARS_GLOBAL
+  USE ED_AUX_FUNX
   USE ED_EIGENSPACE
   USE ED_SETUP
-  USE ED_HAMILTONIAN
+  USE ED_SECTOR
   USE ED_BATH
-  USE ED_AUX_FUNX
+  USE ED_HAMILTONIAN
   implicit none
   private
   !
@@ -23,6 +24,8 @@ MODULE ED_OBSERVABLES
   real(8),dimension(:),allocatable   :: docc
   real(8),dimension(:),allocatable   :: magz
   real(8),dimension(:,:),allocatable :: sz2,n2
+  real(8),dimension(:,:),allocatable :: exct_s0
+  real(8),dimension(:,:),allocatable :: exct_tz
   real(8),dimension(:,:),allocatable :: zimp,simp
   real(8)                            :: dens_ph
   real(8)                            :: s2tot
@@ -52,11 +55,11 @@ MODULE ED_OBSERVABLES
   integer                            :: i,j,ii
   integer                            :: isector,jsector
   !
-
+  real(8),dimension(:),allocatable   :: vvinit
   real(8),dimension(:),pointer       :: state_cvec
   logical                            :: Jcondition
   !
-  type(sector)                       :: sectorI
+  type(sector)                       :: sectorI,sectorJ
 
 
 contains 
@@ -96,11 +99,13 @@ contains
     integer,dimension(Ns_Ud,Ns_Orb) :: Nups,Ndws  ![1,Ns]-[Norb,1+Nbath]
     integer,dimension(Ns)           :: IbUp,IbDw  ![Ns]
     real(8),dimension(Norb)         :: nup,ndw,Sz,nt    
+    real(8),dimension(Norb,Norb)    :: theta_upup,theta_dwdw
     !
     allocate(dens(Norb),dens_up(Norb),dens_dw(Norb))
     allocate(docc(Norb))
     allocate(magz(Norb),sz2(Norb,Norb),n2(Norb,Norb))
     allocate(simp(Norb,Nspin),zimp(Norb,Nspin))
+    allocate(exct_S0(Norb,Norb),exct_Tz(Norb,Norb))
     allocate(Prob(3**Norb))
     allocate(prob_ph(DimPh))
     allocate(pdf_ph(Lpos))
@@ -115,6 +120,10 @@ contains
     sz2     = 0.d0
     n2      = 0.d0
     s2tot   = 0.d0
+    exct_s0 = 0d0
+    exct_tz = 0d0
+    theta_upup = 0d0
+    theta_dwdw = 0d0
     Prob    = 0.d0
     prob_ph = 0.d0
     dens_ph = 0.d0
@@ -143,28 +152,12 @@ contains
        if(MpiMaster)then
           call build_sector(isector,sectorI)
           do i = 1,sectorI%Dim
-             iph = (i-1)/(sectorI%DimEl) + 1
-             i_el = mod(i-1,sectorI%DimEl) + 1
-             !
-             call state2indices(i_el,[sectorI%DimUps,sectorI%DimDws],Indices)
-             do ii=1,Ns_Ud
-                mup = sectorI%H(ii)%map(Indices(ii))
-                mdw = sectorI%H(ii+Ns_Ud)%map(Indices(ii+Ns_ud))
-                Nups(ii,:) = Bdecomp(mup,Ns_Orb) ![Norb,1+Nbath]
-                Ndws(ii,:) = Bdecomp(mdw,Ns_Orb)
-             enddo
-             IbUp = Breorder(Nups)
-             IbDw = Breorder(Ndws)
-             !
              gs_weight=peso*abs(state_cvec(i))**2
-             !
-             !Get operators:
-             do iorb=1,Norb
-                nup(iorb)= ibup(iorb)
-                ndw(iorb)= ibdw(iorb)
-                sz(iorb) = (nup(iorb) - ndw(iorb))/2d0
-                nt(iorb) =  nup(iorb) + ndw(iorb)
-             enddo
+             call build_op_Ns(i,Nud(1,:),Nud(2,:),sectorI)
+             nup = Nud(1,1:Norb)
+             ndw = Nud(2,1:Norb)
+             sz = (nup-ndw)/2d0
+             nt =  nup+ndw
              !
              !Configuration probability
              iprob=1
@@ -190,11 +183,13 @@ contains
                 enddo
              enddo
              s2tot = s2tot  + (sum(sz))**2*gs_weight
+             !
+             iph = (i-1)/(sectorI%DimEl) + 1
              prob_ph(iph) = prob_ph(iph) + gs_weight
              dens_ph = dens_ph + (iph-1)*gs_weight
              !
              !compute the lattice probability distribution function
-             if(Dimph>1 .and. iph.eq.1) then
+             if(Dimph>1 .AND. iph==1) then
                 val = 1
                 do iorb=1,Norb
                    val = val + abs(nint(sign((nt(iorb) - 1.d0),g_ph(iorb))))
@@ -217,7 +212,107 @@ contains
 #endif
        !
     enddo
+
+
+    !EVALUATE EXCITON OP <S_ab> AND <T^z_ab>
+    !<S_ab>  :=   <C^+_{a,up}C_{b,up} + C^+_{a,dw}C_{b,dw}>
+    !<T^z_ab>:=   <C^+_{a,up}C_{b,up} - C^+_{a,dw}C_{b,dw}>
+    do istate=1,state_list%size
+       isector = es_return_sector(state_list,istate)
+       Ei      = es_return_energy(state_list,istate)
+#ifdef _MPI
+       if(MpiStatus)then
+          state_cvec => es_return_cvector(MpiComm,state_list,istate)
+       else
+          state_cvec => es_return_cvector(state_list,istate)
+       endif
+#else
+       state_cvec => es_return_cvector(state_list,istate)
+#endif
+       !
+       peso = 1.d0 ; if(finiteT)peso=exp(-beta*(Ei-Egs))
+       peso = peso/zeta_function
+       !
+       if(Mpimaster)call build_sector(isector,sectorI)
+       !
+       !<S_ab>  :=   <C^+_{a,up}C_{b,up} + C^+_{a,dw}C_{b,dw}>
+       !<T^z_ab>:=   <C^+_{a,up}C_{b,up} - C^+_{a,dw}C_{b,dw}>
+       ! O_uu  = a_up + b_up
+       ! O_dd  = a_dw + b_dw
+       !|v_up> = O_uu|v>
+       !|v_dw> = O_dd|v> 
+       ! Theta_uu = <v_up|v_up>
+       ! Theta_dd = <v_dw|v_dw>
+       do iorb=1,Norb
+          do jorb=iorb+1,Norb
+             !
+             !|v_up> = (C_aup + C_bup)|>
+             jsector = getCsector(1,1,isector)
+             if(jsector/=0)then
+                if(Mpimaster)then
+                   call build_sector(jsector,sectorJ)
+                   allocate(vvinit(sectorJ%Dim));vvinit=zero
+                   do i=1,sectorI%Dim
+                      call apply_op_C(i,j,sgn,jorb,1,1,sectorI,sectorJ) !c_b,up
+                      if(sgn==0d0.OR.j==0)cycle
+                      vvinit(j) = sgn*state_cvec(i)
+                   enddo
+                   do i=1,sectorI%Dim
+                      call apply_op_C(i,j,sgn,iorb,1,1,sectorI,sectorJ) !+c_a,up
+                      if(sgn==0d0.OR.j==0)cycle
+                      vvinit(j) = vvinit(j) + sgn*state_cvec(i)
+                   enddo
+                   call delete_sector(sectorJ)
+                   !
+                   theta_upup(iorb,jorb) = theta_upup(iorb,jorb) + dot_product(vvinit,vvinit)*peso
+                   if(allocated(vvinit))deallocate(vvinit)
+                endif
+             endif
+             !
+             !|v_dw> = (C_adw + C_bdw)|>
+             jsector = getCsector(1,2,isector)
+             if(jsector/=0)then
+                if(Mpimaster)then
+                   call build_sector(jsector,sectorJ)
+                   allocate(vvinit(sectorJ%Dim));vvinit=zero
+                   do i=1,sectorI%Dim
+                      call apply_op_C(i,j,sgn,jorb,1,2,sectorI,sectorJ) !c_b,dw
+                      if(sgn==0d0.OR.j==0)cycle
+                      vvinit(j) = sgn*state_cvec(i)
+                   enddo
+                   do i=1,sectorI%Dim
+                      call apply_op_C(i,j,sgn,iorb,1,2,sectorI,sectorJ) !+c_a,dw
+                      if(sgn==0d0.OR.j==0)cycle
+                      vvinit(j) = vvinit(j) + sgn*state_cvec(i)
+                   enddo
+                   call delete_sector(sectorJ)
+                   !
+                   theta_dwdw(iorb,jorb) = theta_dwdw(iorb,jorb) + dot_product(vvinit,vvinit)*peso
+                   if(allocated(vvinit))deallocate(vvinit)
+                endif
+             endif
+             !
+          enddo
+       enddo
+       !
+#ifdef _MPI
+       if(MpiStatus)then
+          if(associated(state_cvec))deallocate(state_cvec)
+       else
+          if(associated(state_cvec))nullify(state_cvec)
+       endif
+#else
+       if(associated(state_cvec))nullify(state_cvec)
+#endif
+       !
+    enddo
     !
+    do iorb=1,Norb
+       do jorb=iorb+1,Norb
+          exct_s0(iorb,jorb) = 0.5d0*(theta_upup(iorb,jorb) + theta_dwdw(iorb,jorb) - dens(iorb) - dens(jorb))
+          exct_tz(iorb,jorb) = 0.5d0*(theta_upup(iorb,jorb) - theta_dwdw(iorb,jorb) - magZ(iorb) - magZ(jorb))
+       enddo
+    enddo
     !
     !
     !IMPURITY DENSITY MATRIX
@@ -239,27 +334,14 @@ contains
        peso = 1.d0 ; if(finiteT)peso=exp(-beta*(Ei-Egs))
        peso = peso/zeta_function
        !
-       ! idim  = getdim(isector)
-       ! call get_DimUp(isector,iDimUps)
-       ! call get_DimDw(isector,iDimDws)
-       ! iDimUp = product(iDimUps)
-       ! iDimDw = product(iDimDws)
-       !
        if(MpiMaster)then
           call build_sector(isector,sectorI)
           do i=1,sectorI%Dim
              iph = (i-1)/(sectorI%DimEl) + 1
              i_el = mod(i-1,sectorI%DimEl) + 1
-             !
              call state2indices(i_el,[sectorI%DimUps,sectorI%DimDws],Indices)
-             do ii=1,Ns_Ud
-                mup = sectorI%H(ii)%map(Indices(ii))
-                mdw = sectorI%H(ii+Ns_Ud)%map(Indices(ii+Ns_ud))
-                Nups(ii,:) = Bdecomp(mup,Ns_Orb) ![Norb,1+Nbath]
-                Ndws(ii,:) = Bdecomp(mdw,Ns_Orb)
-             enddo
-             Nud(1,:) = Breorder(Nups)
-             Nud(2,:) = Breorder(Ndws)
+             !
+             call build_op_Ns(i,Nud(1,:),Nud(2,:),sectorI)
              !
              !Diagonal densities
              do ispin=1,Nspin
@@ -322,13 +404,17 @@ contains
        if(DimPh>1) w_ph = sqrt(-2.d0*w0_ph/impDmats_ph(0)) !renormalized phonon frequency
        if(iolegend)call write_legend
        call write_observables()
-       write(LOGfile,"(A,10f18.12,f18.12,A)")&
+       write(LOGfile,"(A,10f18.12,f18.12)")&
             "dens"//reg(ed_file_suffix)//"=",(dens(iorb),iorb=1,Norb),sum(dens)
-       write(LOGfile,"(A,10f18.12,A)")&
+       write(LOGfile,"(A,10f18.12)")&
             "docc"//reg(ed_file_suffix)//"=",(docc(iorb),iorb=1,Norb)
+       if(any(exct_S0/=0d0))write(LOGfile,"(A,10f18.12)")&
+            "excS0"//reg(ed_file_suffix)//"=",((exct_S0(iorb,jorb),iorb=1,Norb),jorb=1,Norb)
+       if(any(exct_tz/=0d0))write(LOGfile,"(A,10f18.12)")&
+            "excTZ"//reg(ed_file_suffix)//"=",((exct_Tz(iorb,jorb),iorb=1,Norb),jorb=1,Norb)
        if(Nspin==2)then
           write(LOGfile,"(A,10f18.12,A)")&
-               "mag "//reg(ed_file_suffix)//"=",(magz(iorb),iorb=1,Norb)
+               "magZ"//reg(ed_file_suffix)//"=",(magz(iorb),iorb=1,Norb)
        endif
        if(DimPh>1)call write_pdf()
        !
@@ -349,6 +435,7 @@ contains
 #endif
     !
     deallocate(dens,docc,dens_up,dens_dw,magz,sz2,n2,Prob)
+    deallocate(exct_S0,exct_Tz)
     deallocate(simp,zimp,prob_ph,pdf_ph,pdf_part)
   end subroutine lanc_observables
 
@@ -387,12 +474,6 @@ contains
 #else
        state_cvec => es_return_cvector(state_list,istate)
 #endif
-       !
-       ! iDim  = getdim(isector)
-       ! call get_DimUp(isector,iDimUps)
-       ! call get_DimDw(isector,iDimDws)
-       ! iDimUp = product(iDimUps)
-       ! iDimDw = product(iDimDws)
        !
        peso = 1.d0 ; if(finiteT)peso=exp(-beta*(Ei-Egs))
        peso = peso/zeta_function
@@ -991,7 +1072,7 @@ contains
   !PURPOSE  : write legend, i.e. info about columns 
   !+-------------------------------------------------------------------+
   subroutine write_legend()
-    integer :: unit,iorb,jorb,ispin
+    integer :: unit,iorb,jorb,ispin,stride
     unit = free_unit()
     open(unit,file="observables_info.ed")
     write(unit,"(A1,90(A10,6X))")"#",&
@@ -1010,6 +1091,11 @@ contains
 
     close(unit)
     !
+    unit = free_unit()
+    open(unit,file="exciton_info.ed")
+    write(unit,"(A1,2(A10,6X))")"#","1S_0","2T_z"
+    close(unit)
+
     unit = free_unit()
     open(unit,file="parameters_info.ed")
     write(unit,"(A1,90(A14,1X))")"#","1xmu","2beta",&
@@ -1093,6 +1179,15 @@ contains
     open(unit,file="Nph_probability"//reg(ed_file_suffix)//".ed")
     write(unit,"(90(F15.9,1X))") (prob_ph(i),i=1,DimPh)
     close(unit)
+    !
+    unit = free_unit()
+    open(unit,file="exciton_last"//reg(ed_file_suffix)//".ed")
+    do iorb=1,Norb
+       do jorb=iorb+1,Norb
+          write(unit,"(90(F15.9,1X))")exct_s0(iorb,jorb),exct_tz(iorb,jorb)
+       enddo
+    enddo
+    close(unit)
   end subroutine write_observables
 
   subroutine write_energy()
@@ -1145,7 +1240,7 @@ contains
              jstart = i_el + (j_ph-1)*sectorI%DimEl
              !
              pdf_ph(i) = pdf_ph(i) + peso*psi(i_ph-1)*psi(j_ph-1)*vec(istart)*vec(jstart)
-             if(ph_type==1 .and. Norb==2 .and. val<4) then	!all this conditions should disappear soon or later...
+             if(ph_type==1 .and. Norb==2 .and. val<4) then !all this conditions should disappear soon or later...
                 pdf_part(i,val) = pdf_part(i,val) + peso*psi(i_ph-1)*psi(j_ph-1)*vec(istart)*vec(jstart)
              endif
           enddo

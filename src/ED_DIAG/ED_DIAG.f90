@@ -13,7 +13,9 @@ module ED_DIAG
   USE ED_INPUT_VARS
   USE ED_VARS_GLOBAL
   USE ED_EIGENSPACE
+  USE ED_AUX_FUNX
   USE ED_SETUP
+  USE ED_SECTOR
   USE ED_HAMILTONIAN
   implicit none
   private
@@ -82,12 +84,12 @@ contains
     iter=0
     sector: do isector=1,Nsectors
        if(.not.sectors_mask(isector))cycle sector
-       if(.not.twin_mask(isector))cycle sector !cycle loop if this sector should not be investigated
+       if(.not.twin_mask(isector))cycle sector
        iter=iter+1
        call get_Nup(isector,nups)
        call get_Ndw(isector,ndws)
-       Tflag    = twin_mask(isector).AND.ed_twin
-       Tflag=Tflag.AND.(any(nups/=ndws))
+       Tflag = twin_mask(isector).AND.ed_twin
+       Tflag = Tflag.AND.(any(nups/=ndws))
        !
        Dim      = getdim(isector)
        !
@@ -107,9 +109,9 @@ contains
        if(dim<=max(lanc_dim_threshold,MPISIZE))lanc_solve=.false.
        !
        if(MPIMASTER)then
-          call get_DimUp(isector,DimUps) ; DimUp = product(DimUps)
-          call get_DimDw(isector,DimDws) ; DimDw = product(DimDws)
-          if(ed_verbose>=3)then
+          if(ed_verbose>2)then
+             call get_DimUp(isector,DimUps) ; DimUp = product(DimUps)
+             call get_DimDw(isector,DimDws) ; DimDw = product(DimDws)
              if(lanc_solve)then
                 write(LOGfile,"(1X,I9,A,I9,A6,"&
                      //str(Ns_Ud)//"I3,A6,"&
@@ -125,7 +127,7 @@ contains
                      iter,"-Solving sector:",isector,", nup:",nups,", ndw:",ndws,", dims=",&
                      DimUps,DimDws,DimPh,getdim(isector)
              endif
-          elseif(ed_verbose==1.OR.ed_verbose==2)then
+          elseif(ed_verbose<=2)then
              call eta(iter,count(twin_mask),LOGfile)
           endif
        endif
@@ -136,9 +138,7 @@ contains
        !
        if(ed_verbose>=3.AND.MPIMASTER)call start_timer()
        if(lanc_solve)then
-          !
-          allocate(eig_values(Neigen))
-          eig_values=0d0 
+          allocate(eig_values(Neigen)) ; eig_values=0d0 
           !
           call build_Hv_sector(isector) !For MPI: MpiComm==MpiComm_Global .OR. MpiComm subset of MpiComm_Global
           !
@@ -421,13 +421,13 @@ contains
     sectors_mask=.true.
     !
     if(ed_sectors)then
-       inquire(file="sectors_list"//reg(ed_file_suffix)//".restart",exist=IOfile)
+       inquire(file=reg(SectorFile)//reg(ed_file_suffix)//".restart",exist=IOfile)
        if(IOfile)then
           sectors_mask=.false.
           write(LOGfile,"(A)")"Analysing sectors_list to reduce sectors scan:"
-          list_len=file_length("sectors_list"//reg(ed_file_suffix)//".restart")
+          list_len=file_length(reg(SectorFile)//reg(ed_file_suffix)//".restart")
           !
-          open(free_unit(unit),file="sectors_list"//reg(ed_file_suffix)//".restart",status="old")
+          open(free_unit(unit),file=reg(SectorFile)//reg(ed_file_suffix)//".restart",status="old")
           open(free_unit(unit2),file="list_of_sectors"//reg(ed_file_suffix)//".ed")
           do istate=1,list_len
              read(unit,*,iostat=status)Indices
@@ -501,7 +501,7 @@ contains
     !
     !
     numgs=es_return_gs_degeneracy(state_list,gs_threshold)
-    if(numgs>Nsectors)stop "ed_diag: too many gs"
+    if(numgs>Nsectors)stop "ED_POST_DIAG_NORMAL: Deg(GS) > Nsectors!"
     if(MPIMASTER.AND.ed_verbose>=2)then
        do istate=1,numgs
           isector = es_return_sector(state_list,istate)
@@ -517,7 +517,7 @@ contains
     !
     if(.not.finiteT)then
        !generate a sector_list to be reused in case we want to reduce sectors scan
-       open(free_unit(unit),file="sectors_list"//reg(ed_file_suffix)//".restart")       
+       open(free_unit(unit),file=reg(SectorFile)//reg(ed_file_suffix)//".restart")       
        do istate=1,state_list%size
           isector = es_return_sector(state_list,istate)
           call get_QuantumNumbers(isector,Ns_Orb,Indices)

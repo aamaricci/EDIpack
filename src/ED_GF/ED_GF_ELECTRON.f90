@@ -5,12 +5,13 @@ MODULE ED_GF_ELECTRON
   USE SF_LINALG,  only: inv,eigh,eye
   USE ED_INPUT_VARS
   USE ED_VARS_GLOBAL
+  USE ED_AUX_FUNX
   USE ED_EIGENSPACE
   USE ED_BATH
   USE ED_BATH_FUNCTIONS
   USE ED_SETUP
+  USE ED_SECTOR
   USE ED_HAMILTONIAN
-  USE ED_AUX_FUNX
   implicit none
   private
 
@@ -39,8 +40,9 @@ contains
   !+------------------------------------------------------------------+
   !                        NORMAL
   !+------------------------------------------------------------------+
+  !PURPOSE  : Evaluate the Green's function of the impurity electrons
   subroutine build_gf_normal()
-    integer                                     :: iorb,jorb,ispin,i
+    integer                                     :: iorb,jorb,ispin,jspin,i
     logical                                     :: MaskBool
     logical(8),dimension(Nspin,Nspin,Norb,Norb) :: Hmask
     !
@@ -60,7 +62,15 @@ contains
     enddo
     !
     if(offdiag_gf_flag)then
-       Hmask=mask_hloc(impHloc,wdiag=.true.,uplo=.true.)
+       write(LOGfile,"(A)")""
+       write(LOGfile,"(A)")"Get mask(G):"
+       Hmask= .true.
+       if(.not.ed_all_g)Hmask=mask_hloc(impHloc,wdiag=.true.,uplo=.false.)
+       do ispin=1,Nspin
+          do iorb=1,Norb
+             write(LOGfile,*)((Hmask(ispin,jspin,iorb,jorb),jorb=1,Norb),jspin=1,Nspin)
+          enddo
+       enddo
        do ispin=1,Nspin
           do iorb=1,Norb
              do jorb=iorb+1,Norb
@@ -164,7 +174,7 @@ contains
           if(MpiMaster)then
              call build_sector(jsector,sectorJ)
              if(ed_verbose>=3)write(LOGfile,"(A,I6,20I4)")&
-                  ' add particle:',jsector,sectorJ%Nups,sectorJ%Ndws
+                  ' apply c^+_a,s:',jsector,sectorJ%Nups,sectorJ%Ndws
              allocate(vvinit(sectorJ%Dim)) ; vvinit=zero
              do i=1,sectorI%Dim
                 call apply_op_CDG(i,j,sgn,ipos,ialfa,ispin,sectorI,sectorJ)
@@ -188,7 +198,7 @@ contains
           if(MpiMaster)then
              call build_sector(jsector,sectorJ)
              if(ed_verbose>=3)write(LOGfile,"(A,I6,20I4)")&
-                  ' add particle:',jsector,sectorJ%Nups,sectorJ%Ndws
+                  ' apply c_a,s:',jsector,sectorJ%Nups,sectorJ%Ndws
              allocate(vvinit(sectorJ%Dim)) ; vvinit=zero
              do i=1,sectorI%Dim
                 call apply_op_C(i,j,sgn,ipos,ialfa,ispin,sectorI,sectorJ)
@@ -270,7 +280,7 @@ contains
           if(MpiMaster)then
              call build_sector(jsector,sectorJ)
              if(ed_verbose>=3)write(LOGfile,"(A,I6,20I4)")&
-                  ' add particle:',jsector,sectorJ%Nups,sectorJ%Ndws
+                  ' apply c^+_a,s + c^+_b,s:',jsector,sectorJ%Nups,sectorJ%Ndws
              allocate(vvinit(sectorJ%Dim)) ; vvinit=zero
              !c^+_iorb|gs>
              do i=1,sectorI%Dim
@@ -301,7 +311,7 @@ contains
           if(MpiMaster)then
              call build_sector(jsector,sectorJ)
              if(ed_verbose>=3)write(LOGfile,"(A,I6,20I4)")&
-                  ' add particle:',jsector,sectorJ%Nups,sectorJ%Ndws
+                  '  apply c_a,s + c_b,s:',jsector,sectorJ%Nups,sectorJ%Ndws
              allocate(vvinit(sectorJ%Dim)) ; vvinit=zero
              !c_iorb|gs>
              do i=1,sectorI%Dim

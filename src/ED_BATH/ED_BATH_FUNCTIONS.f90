@@ -104,7 +104,7 @@ contains
              invH_knn = so2nn_reshape(invH_k,Nspin,Norb)
              do ispin=1,Nspin   !this must be diagonal in the spin channel
                 Delta(ispin,ispin,:,:,i)=Delta(ispin,ispin,:,:,i) + &
-                     (dmft_bath_%item(ibath)%v(ispin)**2)*invH_knn(ispin,ispin,:,:)
+                     (dmft_bath_%item(ibath)%v**2)*invH_knn(ispin,ispin,:,:)
              enddo
           enddo
           !

@@ -13,7 +13,6 @@ subroutine ed_get_docc_main(docc)
   docc = ed_docc
 end subroutine ed_get_docc_main
 
-
 subroutine ed_get_doubles_main(docc)
   real(8),dimension(4) :: docc
   docc = [ed_Dust,ed_Dund,ed_Dse,ed_Dph]

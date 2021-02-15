@@ -301,34 +301,6 @@ subroutine check_bath_component(type)
   if(type/="e".OR.type/='v')stop "check_bath_component error: type!=e,v"
   return
 end subroutine check_bath_component
-
-!+-----------------------------------------------------------------------------+!
-!PURPOSE: check that the input array hsa the correct dimensions specified 
-! for the choice of itype and possiblty ispin and/or iorb.
-!+-----------------------------------------------------------------------------+!
-subroutine assert_bath_component_size(array,type,string1,string2)
-  real(8),dimension(:,:,:) :: array
-  character(len=1)         :: type
-  character(len=*)         :: string1,string2
-  integer                  :: Ndim(3)
-  call check_bath_component(type)
-  select case(bath_type)
-  case default
-     Ndim=[Nspin,Norb,Nbath]
-  case('hybrid')
-     select case(type)
-     case('e')
-        Ndim=[Nspin,1,Nbath]
-     case('v')
-        Ndim=[Nspin,Norb,Nbath]
-     case default
-        stop "assert_bath_component_size error: type!=e,v"
-     end select
-  end select
-  call assert_shape(Array,Ndim,reg(string1),reg(string2))
-end subroutine assert_bath_component_size
-
-
 !+-------------------------------------------------------------------+
 !PURPOSE: 
 !+-------------------------------------------------------------------+
@@ -348,6 +320,22 @@ function get_bath_component_dimension(type) result(Ndim)
      end select
   end select
 end function get_bath_component_dimension
+
+
+!+-----------------------------------------------------------------------------+!
+!PURPOSE: check that the input array hsa the correct dimensions specified 
+! for the choice of itype and possiblty ispin and/or iorb.
+!+-----------------------------------------------------------------------------+!
+subroutine assert_bath_component_size(array,type,string1,string2)
+  real(8),dimension(:,:,:) :: array
+  character(len=1)         :: type
+  character(len=*)         :: string1,string2
+  integer                  :: Ndim(3)
+  Ndim = get_bath_component_dimension(type)
+  call assert_shape(Array,Ndim,reg(string1),reg(string2))
+end subroutine assert_bath_component_size
+
+
 
 
 

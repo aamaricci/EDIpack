@@ -10,17 +10,6 @@ MODULE ED_AUX_FUNX
   private
 
 
-  ! interface set_Hloc
-  !    module procedure set_Hloc_so
-  !    module procedure set_Hloc_nn
-  ! end interface set_Hloc
-
-  ! interface print_Hloc
-  !    module procedure print_Hloc_so
-  !    module procedure print_Hloc_nn
-  ! end interface print_Hloc
-
-
   interface lso2nnn_reshape
      module procedure d_nlso2nnn
      module procedure c_nlso2nnn
@@ -41,35 +30,387 @@ MODULE ED_AUX_FUNX
      module procedure c_nn2nso
   end interface nn2so_reshape
 
+  interface ed_set_suffix
+     module procedure :: ed_set_suffix_i
+     module procedure :: ed_set_suffix_d
+     module procedure :: ed_set_suffix_c
+  end interface ed_set_suffix
 
 
+
+  !FERMIONIC OPERATORS IN BITWISE OPERATIONS
+  public :: c,cdg
+  !AUX BIT OPERATIONS
+  public :: bdecomp
+  public :: breorder
+  public :: bjoin
+  !BINARY SEARCH
+  public :: binary_search
+  !MPI PROCEDURES
+#ifdef _MPI
+  public :: scatter_vector_MPI
+  public :: scatter_basis_MPI
+  public :: gather_vector_MPI
+  public :: allgather_vector_MPI
+#endif
+  !AUX RESHAPE FUNCTIONS (internal use)
   public :: index_stride_so
-  !
   public :: lso2nnn_reshape
   public :: so2nn_reshape
   public :: nnn2lso_reshape
   public :: nn2so_reshape
   !
+  !SEARCH CHEMICAL POTENTIAL, this should go into DMFT_TOOLS I GUESS
   public :: ed_search_variable
   public :: search_chemical_potential
-
+  !ALLOCATE/DEALLOCATE GRIDS
   public :: allocate_grids
   public :: deallocate_grids
+
+  public :: ed_set_suffix
+  public :: ed_reset_suffix
+
+
 
 contains
 
 
+  subroutine ed_reset_suffix()
+    ed_file_suffix=''
+  end subroutine ed_reset_suffix
 
-
-
-  !> Get stride position in the one-particle many-body space 
-  function index_stride_so(ispin,iorb) result(indx)
-    integer :: iorb
-    integer :: ispin
+  subroutine ed_set_suffix_i(indx)
     integer :: indx
-    indx = iorb  + (ispin-1)*Norb
-  end function index_stride_so
+    ed_file_suffix=reg(ineq_site_suffix)//str(indx,site_indx_padding)
+  end subroutine ed_set_suffix_i
+  subroutine ed_set_suffix_d(indx)
+    real(8) :: indx
+    ed_file_suffix=reg(ineq_site_suffix)//str(indx)
+  end subroutine ed_set_suffix_d
+  subroutine ed_set_suffix_c(indx)
+    character(len=*) :: indx
+    ed_file_suffix=reg(ineq_site_suffix)//str(indx)
+  end subroutine ed_set_suffix_c
 
+
+
+  !##################################################################
+  !##################################################################
+  !CREATION / DESTRUCTION OPERATORS
+  !##################################################################
+  !##################################################################
+  !+-------------------------------------------------------------------+
+  !PURPOSE: input state |in> of the basis and calculates 
+  !   |out>=C_pos|in>  OR  |out>=C^+_pos|in> ; 
+  !   the sign of |out> has the phase convention, pos labels the sites
+  !+-------------------------------------------------------------------+
+  subroutine c(pos,in,out,fsgn)
+    integer,intent(in)    :: pos
+    integer,intent(in)    :: in
+    integer,intent(inout) :: out
+    real(8),intent(inout) :: fsgn    
+    integer               :: l
+    if(.not.btest(in,pos-1))stop "C error: C_i|...0_i...>"
+    fsgn=1d0
+    do l=1,pos-1
+       if(btest(in,l-1))fsgn=-fsgn
+    enddo
+    out = ibclr(in,pos-1)
+  end subroutine c
+
+  subroutine cdg(pos,in,out,fsgn)
+    integer,intent(in)    :: pos
+    integer,intent(in)    :: in
+    integer,intent(inout) :: out
+    real(8),intent(inout) :: fsgn    
+    integer               :: l
+    if(btest(in,pos-1))stop "C^+ error: C^+_i|...1_i...>"
+    fsgn=1d0
+    do l=1,pos-1
+       if(btest(in,l-1))fsgn=-fsgn
+    enddo
+    out = ibset(in,pos-1)
+  end subroutine cdg
+
+
+
+
+
+  !##################################################################
+  !##################################################################
+  !               BITWISE OPERATIONS
+  !##################################################################
+  !##################################################################
+  !+------------------------------------------------------------------+
+  !PURPOSE  : input a state |i> and output a vector ivec(Nlevels)
+  !with its binary decomposition
+  !(corresponds to the decomposition of the number i-1)
+  !+------------------------------------------------------------------+
+  function bdecomp(i,Ntot) result(ivec)
+    integer :: Ntot,ivec(Ntot),l,i
+    logical :: busy
+    !this is the configuration vector |1,..,Ns,Ns+1,...,Ntot>
+    !obtained from binary decomposition of the state/number i\in 2^Ntot
+    do l=0,Ntot-1
+       busy=btest(i,l)
+       ivec(l+1)=0
+       if(busy)ivec(l+1)=1
+    enddo
+  end function bdecomp
+
+
+  !+------------------------------------------------------------------+
+  ! Reorder a binary decomposition so to have a state of the form:
+  ! default: |(1:Norb),([1:Nbath]_1, [1:Nbath]_2, ... ,[1:Nbath]_Norb)>_spin
+  ! hybrid:  |(1:Norb),([1:Nbath])_spin
+  ! replica: |(1:Norb),([1:Norb]_1, [1:Norb]_2, ...  , [1:Norb]_Nbath)>_spin
+  !
+  !> case (ed_total_ud):
+  !   (T): Ns_Ud=1, Ns_Orb=Ns.
+  !        bdecomp is already of the form above [1:Ns]
+  !   (F): Ns_Ud=Norb, Ns_Orb=Ns/Norb==1+Nbath
+  !        bdecomp is
+  !        |( [1:1+Nbath]_1,...,[1:1+Nbath]_Norb)>_spin
+  !+------------------------------------------------------------------+
+  function breorder(Nins) result(Ivec)
+    integer,intent(in),dimension(Ns_Ud,Ns_Orb) :: Nins ![1,Ns] - [Norb,1+Nbath]
+    integer,dimension(Ns)                      :: Ivec ![Ns]
+    integer                                    :: iud,ibath,indx
+    select case (ed_total_ud)
+    case (.true.)
+       Ivec = Nins(1,:)
+    case (.false.)
+       do iud=1,Ns_Ud           ![1:Norb]
+          Ivec(iud) = Nins(iud,1)
+          do ibath=1,Nbath
+             indx = getBathStride(iud,ibath) !take care of normal/
+             Ivec(indx) = Nins(iud,1+ibath)
+          enddo
+       enddo
+    end select
+  end function breorder
+
+
+  !+------------------------------------------------------------------+
+  !PURPOSE  : input a vector ib(Nlevels) with the binary sequence 
+  ! and output the corresponding state |i>
+  !(corresponds to the recomposition of the number i-1)
+  !+------------------------------------------------------------------+
+  function bjoin(ib,Ntot) result(i)
+    integer                 :: Ntot
+    integer,dimension(Ntot) :: ib
+    integer                 :: i,j
+    i=0
+    do j=0,Ntot-1
+       i=i+ib(j+1)*2**j
+    enddo
+  end function bjoin
+
+
+  !+------------------------------------------------------------------+
+  !PURPOSE : binary search of a value in an array
+  !+------------------------------------------------------------------+
+  recursive function binary_search(a,value) result(bsresult)
+    integer,intent(in) :: a(:), value
+    integer            :: bsresult, mid
+    mid = size(a)/2 + 1
+    if (size(a) == 0) then
+       bsresult = 0        ! not found
+       !stop "binary_search error: value not found"
+    else if (a(mid) > value) then
+       bsresult= binary_search(a(:mid-1), value)
+    else if (a(mid) < value) then
+       bsresult = binary_search(a(mid+1:), value)
+       if (bsresult /= 0) then
+          bsresult = mid + bsresult
+       end if
+    else
+       bsresult = mid      ! SUCCESS!!
+    end if
+  end function binary_search
+
+
+
+
+
+  !##################################################################
+  !##################################################################
+  !AUXILIARY COMPUTATIONAL ROUTINES ARE HERE BELOW:
+  !##################################################################
+  !##################################################################
+
+#ifdef _MPI
+  !! Scatter V into the arrays Vloc on each thread: sum_threads(size(Vloc)) must be equal to size(v)
+  subroutine scatter_vector_MPI(MpiComm,v,vloc)
+    integer                          :: MpiComm
+    real(8),dimension(:)             :: v    !size[N]
+    real(8),dimension(:)             :: vloc !size[Nloc]
+    integer                          :: i,iph,irank,Nloc,N
+    integer                          :: v_start,v_end,vloc_start,vloc_end
+    integer,dimension(:),allocatable :: Counts,Offset
+    integer                          :: MpiSize,MpiIerr
+    logical                          :: MpiMaster
+    !
+    if( MpiComm == MPI_UNDEFINED .OR. MpiComm == Mpi_Comm_Null )return
+    ! stop "scatter_vector_MPI error: MpiComm == MPI_UNDEFINED"
+    !
+    MpiSize   = get_size_MPI(MpiComm)
+    MpiMaster = get_master_MPI(MpiComm)
+    !
+    Nloc = size(Vloc)
+    N = 0
+    call AllReduce_MPI(MpiComm,Nloc,N)
+    if(MpiMaster.AND.N /= size(V)) stop "scatter_vector_MPI error: size(V) != Mpi_Allreduce(Nloc)"
+    !
+    allocate(Counts(0:MpiSize-1)) ; Counts=0
+    allocate(Offset(0:MpiSize-1)) ; Offset=0
+    !
+    !Get Counts;
+    call MPI_AllGather(Nloc/Dimph,1,MPI_INTEGER,Counts,1,MPI_INTEGER,MpiComm,MpiIerr)
+    !
+    !Get Offset:
+    Offset(0)=0
+    do i=1,MpiSize-1
+       Offset(i) = Offset(i-1) + Counts(i-1)
+    enddo
+    !
+    Vloc=0d0
+    do iph=1,Dimph
+       if(MpiMaster)then
+          v_start = 1 + (iph-1)*(N/Dimph)
+          v_end = iph*(N/Dimph)
+       else
+          v_start = 1
+          v_end = 1
+       endif
+       vloc_start = 1 + (iph-1)*(Nloc/Dimph)
+       vloc_end = iph*(Nloc/Dimph)
+       call MPI_Scatterv(V(v_start:v_end),Counts,Offset,MPI_DOUBLE_PRECISION,&
+            Vloc(vloc_start:vloc_end),Nloc/DimPh,MPI_DOUBLE_PRECISION,0,MpiComm,MpiIerr)
+    enddo
+    !
+    return
+  end subroutine scatter_vector_MPI
+
+
+  subroutine scatter_basis_MPI(MpiComm,v,vloc)
+    integer                :: MpiComm
+    real(8),dimension(:,:) :: v    !size[N,N]
+    real(8),dimension(:,:) :: vloc !size[Nloc,Neigen]
+    integer                :: N,Nloc,Neigen,i
+    N      = size(v,1)
+    Nloc   = size(vloc,1)
+    Neigen = size(vloc,2)
+    if( size(v,2) < Neigen ) stop "error scatter_basis_MPI: size(v,2) < Neigen"
+    !
+    do i=1,Neigen
+       call scatter_vector_MPI(MpiComm,v(:,i),vloc(:,i))
+    end do
+    !
+    return
+  end subroutine scatter_basis_MPI
+
+
+  !! AllGather Vloc on each thread into the array V: sum_threads(size(Vloc)) must be equal to size(v)
+  subroutine gather_vector_MPI(MpiComm,vloc,v)
+    integer                          :: MpiComm
+    real(8),dimension(:)             :: vloc !size[Nloc]
+    real(8),dimension(:)             :: v    !size[N]
+    integer                          :: i,iph,irank,Nloc,N
+    integer                          :: v_start,v_end,vloc_start,vloc_end
+    integer,dimension(:),allocatable :: Counts,Offset
+    integer                          :: MpiSize,MpiIerr
+    logical                          :: MpiMaster
+    !
+    if(  MpiComm == MPI_UNDEFINED .OR. MpiComm == Mpi_Comm_Null ) return
+    !stop "gather_vector_MPI error: MpiComm == MPI_UNDEFINED"
+    !
+    MpiSize   = get_size_MPI(MpiComm)
+    MpiMaster = get_master_MPI(MpiComm)
+    !
+    Nloc = size(Vloc)
+    N = 0
+    call AllReduce_MPI(MpiComm,Nloc,N)
+    if(MpiMaster.AND.N /= size(V)) stop "gather_vector_MPI error: size(V) != Mpi_Allreduce(Nloc)"
+    !
+    allocate(Counts(0:MpiSize-1)) ; Counts=0
+    allocate(Offset(0:MpiSize-1)) ; Offset=0
+    !
+    !Get Counts;
+    call MPI_AllGather(Nloc/Dimph,1,MPI_INTEGER,Counts,1,MPI_INTEGER,MpiComm,MpiIerr)
+    !
+    !Get Offset:
+    Offset(0)=0
+    do i=1,MpiSize-1
+       Offset(i) = Offset(i-1) + Counts(i-1)
+    enddo
+    !
+    do iph=1,Dimph
+       if(MpiMaster)then
+          v_start = 1 + (iph-1)*(N/Dimph)
+          v_end = iph*(N/Dimph)
+       else
+          v_start = 1
+          v_end = 1
+       endif
+       vloc_start = 1 + (iph-1)*(Nloc/Dimph)
+       vloc_end = iph*(Nloc/Dimph)
+       !
+       call MPI_Gatherv(Vloc(vloc_start:vloc_end),Nloc/DimPh,MPI_DOUBLE_PRECISION,&
+            V(v_start:v_end),Counts,Offset,MPI_DOUBLE_PRECISION,0,MpiComm,MpiIerr)
+    enddo
+    !
+    return
+  end subroutine gather_vector_MPI
+
+
+  !! AllGather Vloc on each thread into the array V: sum_threads(size(Vloc)) must be equal to size(v)
+  subroutine allgather_vector_MPI(MpiComm,vloc,v)
+    integer                          :: MpiComm
+    real(8),dimension(:)             :: vloc !size[Nloc]
+    real(8),dimension(:)             :: v    !size[N]
+    integer                          :: i,iph,irank,Nloc,N
+    integer                          :: v_start,v_end,vloc_start,vloc_end
+    integer,dimension(:),allocatable :: Counts,Offset
+    integer                          :: MpiSize,MpiIerr
+    logical                          :: MpiMaster
+    !
+    if(  MpiComm == MPI_UNDEFINED .OR. MpiComm == Mpi_Comm_Null ) return
+    ! stop "gather_vector_MPI error: MpiComm == MPI_UNDEFINED"
+    !
+    MpiSize   = get_size_MPI(MpiComm)
+    MpiMaster = get_master_MPI(MpiComm)
+    !
+    Nloc = size(Vloc)
+    N    = 0
+    call AllReduce_MPI(MpiComm,Nloc,N)
+    if(MpiMaster.AND.N /= size(V)) stop "allgather_vector_MPI error: size(V) != Mpi_Allreduce(Nloc)"
+    !
+    allocate(Counts(0:MpiSize-1)) ; Counts=0
+    allocate(Offset(0:MpiSize-1)) ; Offset=0
+    !
+    !Get Counts;
+    call MPI_AllGather(Nloc/Dimph,1,MPI_INTEGER,Counts,1,MPI_INTEGER,MpiComm,MpiIerr)
+    !
+    !Get Offset:
+    Offset(0)=0
+    do i=1,MpiSize-1
+       Offset(i) = Offset(i-1) + Counts(i-1)
+    enddo
+    !
+    V = 0d0
+    do iph=1,Dimph
+       v_start = 1 + (iph-1)*(N/Dimph)
+       v_end = iph*(N/Dimph)
+       vloc_start = 1 + (iph-1)*(Nloc/Dimph)
+       vloc_end = iph*(Nloc/Dimph)
+       call MPI_AllGatherv(Vloc(vloc_start:vloc_end),Nloc/DimPh,MPI_DOUBLE_PRECISION,&
+            V(v_start:v_end),Counts,Offset,MPI_DOUBLE_PRECISION,MpiComm,MpiIerr)
+    enddo
+    !
+    return
+  end subroutine Allgather_vector_MPI
+#endif
 
 
 
@@ -79,6 +420,15 @@ contains
   !##################################################################
   !                   RESHAPE ROUTINES
   !##################################################################
+  !> Get stride position in the one-particle many-body space 
+  function index_stride_so(ispin,iorb) result(indx)
+    integer :: iorb
+    integer :: ispin
+    integer :: indx
+    indx = iorb  + (ispin-1)*Norb
+  end function index_stride_so
+
+
   !+-----------------------------------------------------------------------------+!
   !PURPOSE: 
   ! reshape a matrix from the [Nlso][Nlso] shape

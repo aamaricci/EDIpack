@@ -34,19 +34,14 @@ subroutine chi2_fitgf_replica(fg,bath_)
   if(size(fg,3)/=Norb)stop "chi2_fitgf_replica error: size[fg,3]!=Norb"
   if(size(fg,4)/=Norb)stop "chi2_fitgf_replica error: size[fg,4]!=Norb"
   !
-  check= check_bath_dimension(bath_,impHloc)
+  check= check_bath_dimension(bath_)
   if(.not.check)stop "chi2_fitgf_replica error: wrong bath dimensions"
   !
   call allocate_dmft_bath(dmft_bath)
   call set_dmft_bath(bath_,dmft_bath)
-  allocate(array_bath(size(bath_)-Nbath))
-  allocate(Nlambdas(Nbath))
-  counter=0
-  do ibath=1,Nbath
-     counter=counter+1
-     Nlambdas(ibath)=bath_(counter) !N_dec, one per bath copy
-  enddo
-  array_bath=bath_(Nbath+1:size(bath_))
+  allocate(array_bath(size(bath_)-1))
+  Nlambdas  =bath_(1)
+  array_bath=bath_(2:)
   !
   Hmask=mask_hloc(impHloc,wdiag=.true.,uplo=.true.)
   totNso=count(Hmask)
@@ -87,23 +82,25 @@ subroutine chi2_fitgf_replica(fg,bath_)
      Wdelta=Xdelta
   end select
   !
-  write(LOGfile,*)"  fitted functions",totNso
+  write(LOGfile,*)"Fitted functions",totNso
   do i=1,totNso
      Gdelta(i,1:Ldelta) = fg(getIspin(i),getJspin(i),getIorb(i),getJorb(i),1:Ldelta)
   enddo
   !
-  select case(cg_method)     !0=NR-CG[default]; 1=CG-MINIMIZE; 2=CG+
+  select case(cg_method)     !0=NR-CG[default]; 1=CG-MINIMIZE
   case default
      if(cg_grad==0)then
         select case (cg_scheme)
         case ("weiss")
-           call fmin_cg(array_bath,chi2_weiss_replica,grad_chi2_weiss_replica,iter,chi,&
+           call fmin_cg(array_bath,chi2_weiss_replica,grad_chi2_weiss_replica,&
+                iter,chi,&
                 itmax=cg_niter,&
                 ftol=cg_Ftol,  &
                 istop=cg_stop, &
                 iverbose=(ed_verbose>3))
         case ("delta")
-           call fmin_cg(array_bath,chi2_delta_replica,grad_chi2_delta_replica,iter,chi,&
+           call fmin_cg(array_bath,chi2_delta_replica,grad_chi2_delta_replica,&
+                iter,chi,&
                 itmax=cg_niter,&
                 ftol=cg_Ftol,  &
                 istop=cg_stop, &
@@ -114,13 +111,15 @@ subroutine chi2_fitgf_replica(fg,bath_)
      else
         select case (cg_scheme)
         case ("weiss")
-           call fmin_cg(array_bath,chi2_weiss_replica,iter,chi,&
+           call fmin_cg(array_bath,chi2_weiss_replica,&
+                iter,chi,&
                 itmax=cg_niter,&
                 ftol=cg_Ftol,  &
                 istop=cg_stop, &
                 iverbose=(ed_verbose>3))
         case ("delta")
-           call fmin_cg(array_bath,chi2_delta_replica,iter,chi,&
+           call fmin_cg(array_bath,chi2_delta_replica,&
+                iter,chi,&
                 itmax=cg_niter,&
                 ftol=cg_Ftol,  &
                 istop=cg_stop, &
@@ -135,11 +134,13 @@ subroutine chi2_fitgf_replica(fg,bath_)
      select case (cg_scheme)
      case ("weiss")
         call fmin_cgminimize(array_bath,chi2_weiss_replica,&
-             iter,chi,itmax=cg_niter,ftol=cg_Ftol,new_version=cg_minimize_ver,hh_par=cg_minimize_hh,&
+             iter,chi,itmax=cg_niter,ftol=cg_Ftol,&
+             new_version=cg_minimize_ver,hh_par=cg_minimize_hh,&
              iverbose=(ed_verbose>3))
      case ("delta")
         call fmin_cgminimize(array_bath,chi2_delta_replica,&
-             iter,chi,itmax=cg_niter,ftol=cg_Ftol,new_version=cg_minimize_ver,hh_par=cg_minimize_hh,&
+             iter,chi,itmax=cg_niter,ftol=cg_Ftol,&
+             new_version=cg_minimize_ver,hh_par=cg_minimize_hh,&
              iverbose=(ed_verbose>3))
      case default
         stop "chi2_fitgf_replica error: cg_scheme != [weiss,delta]"
@@ -155,7 +156,7 @@ subroutine chi2_fitgf_replica(fg,bath_)
   write(unit,"(ES18.9,1x,I5)") chi,iter
   close(unit)
   !
-  bath_(Nbath+1:size(bath_))=array_bath
+  bath_(2:size(bath_))=array_bath
   call set_dmft_bath(bath_,dmft_bath) ! *** array_bath --> dmft_bath *** (per write fit result)
   call write_dmft_bath(dmft_bath,LOGfile)
   call save_dmft_bath(dmft_bath)
@@ -175,7 +176,6 @@ subroutine chi2_fitgf_replica(fg,bath_)
   deallocate(getIspin,getJspin)
   deallocate(getIorb,getJorb)
   deallocate(array_bath)
-  deallocate(Nlambdas)
   !
 contains
   !
@@ -364,20 +364,18 @@ function delta_replica(a) result(Delta)
   integer                                            :: i,stride
   complex(8),dimension(Nspin*Norb,Nspin*Norb)        :: Haux,Htmp
   complex(8),dimension(Nspin,Nspin,Norb,Norb)        :: invH_knn
-  real(8),dimension(Nspin,Nbath)                     :: dummy_Vbath
+  real(8),dimension(Nbath)                           :: dummy_Vbath
   type(nsymm_vector),dimension(Nbath)                :: dummy_lambda
   !
   !Get Hs
   stride = 0
   do ibath=1,Nbath
-     allocate(dummy_lambda(ibath)%element(Nlambdas(ibath)))
+     allocate(dummy_lambda(ibath)%element(Nlambdas))
      !
-     do ispin=1,Nspin
-        stride = stride + 1
-        dummy_vbath(ispin,ibath) = a(stride)
-     enddo
-     dummy_lambda(ibath)%element=a(stride+1:stride+Nlambdas(ibath))
-     stride=stride+Nlambdas(ibath)
+     stride = stride + 1
+     dummy_vbath(ibath) = a(stride)
+     dummy_lambda(ibath)%element=a(stride+1:stride+Nlambdas)
+     stride=stride+Nlambdas
   enddo
   !
   Delta=zero
@@ -391,7 +389,7 @@ function delta_replica(a) result(Delta)
         !
         do ispin=1,Nspin
            Delta(ispin,ispin,:,:,i)=Delta(ispin,ispin,:,:,i) + &
-                dummy_Vbath(ispin,ibath)*invH_knn(ispin,ispin,:,:)*dummy_Vbath(ispin,ibath)
+                dummy_Vbath(ibath)*invH_knn(ispin,ispin,:,:)*dummy_Vbath(ibath)
         enddo
      enddo
      deallocate(dummy_lambda(ibath)%element)
@@ -424,21 +422,19 @@ function grad_delta_replica(a) result(dDelta)
   complex(8),dimension(Nspin*Norb,Nspin*Norb)               :: H_reconstructed,Htmp,Hbasis_so
   complex(8),dimension(Nspin*Norb,Nspin*Norb,Ldelta)        :: Haux
   complex(8),dimension(Nspin,Nspin,Norb,Norb,Ldelta)        :: invH_knn
-  real(8),dimension(Nspin,Nbath)                            :: dummy_Vbath
+  real(8),dimension(Nbath)                                  :: dummy_Vbath
   type(nsymm_vector),dimension(Nbath)                       :: dummy_lambda
   !
   !
   !Get Hs
   counter = 0
   do ibath=1,Nbath
-     allocate(dummy_lambda(ibath)%element(Nlambdas(ibath)))
+     allocate(dummy_lambda(ibath)%element(Nlambdas))
      !
-     do ispin=1,Nspin
-        counter = counter + 1
-        dummy_vbath(ispin,ibath) = a(counter)
-     enddo
-     dummy_lambda(ibath)%element=a(counter+1:counter+Nlambdas(ibath))
-     counter=counter+Nlambdas(ibath)
+     counter = counter + 1
+     dummy_vbath(ibath) = a(counter)
+     dummy_lambda(ibath)%element=a(counter+1:counter+Nlambdas)
+     counter=counter+Nlambdas
   enddo
   !
   dDelta=zero
@@ -451,26 +447,19 @@ function grad_delta_replica(a) result(dDelta)
         invH_knn(:,:,:,:,i) = so2nn_reshape(Haux(:,:,i),Nspin,Norb)
      enddo
      !Derivate_Vp
-     do ispin=1,Nspin
-        counter = counter + 1
-        do iorb=1,Norb
-           do jorb=1,Norb
-              dDelta(ispin,ispin,iorb,jorb,:,counter)=2d0*dummy_Vbath(ispin,ibath)*invH_knn(ispin,ispin,iorb,jorb,:)
-           enddo
-        enddo
-     enddo
+     counter = counter + 1
+     dDelta(:,:,:,:,:,counter)=2d0*dummy_Vbath(ibath)*invH_knn(:,:,:,:,:)
+     !
      !Derivate_lambda_p
-     do ispin=1,Nspin
-        do k=1,size(dummy_lambda(ibath)%element)
-           counter = counter + 1
-           Hbasis_so=nn2so_reshape(H_basis(k)%O,Nspin,Norb)
-           do l=1,Ldelta
-              ! Hbasis_lso=nnn2lso_reshape(H_basis(k)%O,Nlat,Nspin,Norb)
-              ! Htmp=matmul(Haux(:,:,l),Hbasis_lso)
-              ! Htmp=matmul(Htmp,Haux(:,:,l))
-              Htmp = ((Haux(:,:,l) .x. Hbasis_so)) .x. Haux(:,:,l)
-              dDelta(:,:,:,:,l,counter)=so2nn_reshape((dummy_Vbath(ispin,ibath)**2)*Htmp,Nspin,Norb)
-           enddo
+     do k=1,Nlambdas
+        counter = counter + 1
+        Hbasis_so=nn2so_reshape(H_basis(k)%O,Nspin,Norb)
+        do l=1,Ldelta
+           ! Hbasis_lso=nnn2lso_reshape(H_basis(k)%O,Nlat,Nspin,Norb)
+           ! Htmp=matmul(Haux(:,:,l),Hbasis_lso)
+           ! Htmp=matmul(Htmp,Haux(:,:,l))
+           Htmp = ((Haux(:,:,l) .x. Hbasis_so)) .x. Haux(:,:,l)
+           dDelta(:,:,:,:,l,counter)=so2nn_reshape(dummy_Vbath(ibath)**2*Htmp,Nspin,Norb)
         enddo
      enddo
      !
@@ -498,7 +487,8 @@ function grad_g0and_replica(a) result(dG0and)
         ! dG0and_lso=matmul(-G0and_lso,dDelta_lso)
         ! dG0and_lso=matmul(dG0and_lso,G0and_lso)
         dG0and_so = (G0and_so .x. dDelta_so) .x. G0and_so
-        dG0and(:,:,:,:,l,ik)=-so2nn_reshape(dG0and_so,Nspin,Norb)
+        dG0and(:,:,:,:,l,ik)=so2nn_reshape(dG0and_so,Nspin,Norb) !Check the sign, should it be +
+!        dG0and(:,:,:,:,l,ik)=-so2nn_reshape(dG0and_so,Nspin,Norb)
      enddo
   enddo
   !

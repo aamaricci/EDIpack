@@ -1,6 +1,7 @@
 module ED_EIGENSPACE
   USE ED_VARS_GLOBAL
-  USE ED_SETUP
+  USE ED_AUX_FUNX
+  USE ED_SECTOR
   implicit none
   private
 

@@ -10,11 +10,6 @@ subroutine ed_get_gimp_matsubara_lattice(Gmats,Nsites)
   Gmats(1:Nsites,:,:,:,:,:) = Gmatsii(1:Nsites,:,:,:,:,:)
 end subroutine ed_get_gimp_matsubara_lattice
 
-subroutine ed_get_gimp_matsubara_site(Gmats,ilat)
-  integer                                                         :: ilat
-  complex(8),dimension(Nspin,Nspin,Norb,Norb,Lmats),intent(inout) :: Gmats
-  Gmats(:,:,:,:,:) = Gmatsii(ilat,:,:,:,:,:)
-end subroutine ed_get_gimp_matsubara_site
 
 
 !NORMAL, REAL SELF-ENERGY
@@ -29,12 +24,6 @@ subroutine ed_get_gimp_realaxis_lattice(Greal,Nsites)
   Greal(1:Nsites,:,:,:,:,:) = Grealii(1:Nsites,:,:,:,:,:)
 end subroutine ed_get_gimp_realaxis_lattice
 
-subroutine ed_get_gimp_realaxis_site(Greal,ilat)
-  integer                                                         :: ilat
-  complex(8),dimension(Nspin,Nspin,Norb,Norb,Lreal),intent(inout) :: Greal
-  Greal(:,:,:,:,:) = Grealii(ilat,:,:,:,:,:)
-end subroutine ed_get_gimp_realaxis_site
-
 
 !NORMAL, MATSUBARA SELF-ENEGRGY
 subroutine ed_get_sigma_matsubara_main(Smats)
@@ -48,12 +37,6 @@ subroutine ed_get_sigma_matsubara_lattice(Smats,Nsites)
   Smats(1:Nsites,:,:,:,:,:) = Smatsii(1:Nsites,:,:,:,:,:)
 end subroutine ed_get_sigma_matsubara_lattice
 
-subroutine ed_get_sigma_matsubara_site(Smats,ilat)
-  integer                                                         :: ilat
-  complex(8),dimension(Nspin,Nspin,Norb,Norb,Lmats),intent(inout) :: Smats
-  Smats(:,:,:,:,:) = Smatsii(ilat,:,:,:,:,:)
-end subroutine ed_get_sigma_matsubara_site
-
 
 !NORMAL, REAL SELF-ENERGY
 subroutine ed_get_sigma_realaxis_main(Sreal)
@@ -66,9 +49,3 @@ subroutine ed_get_sigma_realaxis_lattice(Sreal,Nsites)
   complex(8),dimension(Nsites,Nspin,Nspin,Norb,Norb,Lreal),intent(inout) :: Sreal
   Sreal(1:Nsites,:,:,:,:,:) = Srealii(1:Nsites,:,:,:,:,:)
 end subroutine ed_get_sigma_realaxis_lattice
-
-subroutine ed_get_sigma_realaxis_site(Sreal,ilat)
-  integer                                                         :: ilat
-  complex(8),dimension(Nspin,Nspin,Norb,Norb,Lreal),intent(inout) :: Sreal
-  Sreal(:,:,:,:,:) = Srealii(ilat,:,:,:,:,:)
-end subroutine ed_get_sigma_realaxis_site

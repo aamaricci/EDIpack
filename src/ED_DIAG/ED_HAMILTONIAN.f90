@@ -1,6 +1,6 @@
 MODULE ED_HAMILTONIAN
   USE ED_HAMILTONIAN_COMMON
-  USE ED_HAMILTONIAN_SPARSE_HxV
+  USE ED_HAMILTONIAN_STORED_HxV
   USE ED_HAMILTONIAN_DIRECT_HxV
   !
   implicit none
@@ -236,7 +236,6 @@ contains
        mpiIshift=0
     endif
 #endif
-    iter=0
     !
   end subroutine delete_Hv_sector
 

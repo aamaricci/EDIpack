@@ -11,6 +11,7 @@ MODULE ED_CHI_EXCT
   USE ED_BATH
   USE ED_BATH_FUNCTIONS
   USE ED_SETUP
+  USE ED_SECTOR
   USE ED_HAMILTONIAN
   USE ED_AUX_FUNX
 
@@ -161,7 +162,8 @@ contains
              call delete_sector(sectorK)
           endif
        endif
-       call delete_sector(sectorI)
+       !
+       if(MpiMaster)call delete_sector(sectorI)
        !
        call tridiag_Hv_sector(isector,vvinit,alfa_,beta_,norm2)
        call add_to_lanczos_exctChi(norm2,state_e,alfa_,beta_,iorb,jorb,0)
@@ -270,7 +272,7 @@ contains
              call delete_sector(sectorK)
           endif
        endif
-       call delete_sector(sectorI)
+       if(MpiMaster)call delete_sector(sectorI)
        !
        call tridiag_Hv_sector(isector,vvinit,alfa_,beta_,norm2)
        call add_to_lanczos_exctChi(norm2,state_e,alfa_,beta_,iorb,jorb,2)
@@ -349,9 +351,10 @@ contains
        !
        !C^+_{a,dw}C_{b,up}:
        ksector = getCsector(jalfa,1,isector)
+       if(ksector/=0)then
        jsector = getCDGsector(ialfa,2,ksector)
-       if(ksector/=0.AND.jsector/=0)then
-          if(MpiMaster)then
+          if(jsector/=0)then
+            if(MpiMaster)then
              call build_sector(isector,sectorI)
              call build_sector(ksector,sectorK)
              call build_sector(jsector,sectorJ)
@@ -384,11 +387,13 @@ contains
           deallocate(alfa_,beta_)
           if(allocated(vvinit))deallocate(vvinit)
        endif
+       endif
        !
        !C^+_{a,up}C_{b,dw}:
        ksector = getCsector(jalfa,2,isector)
+       if(ksector/=0)then
        jsector = getCDGsector(ialfa,1,ksector)
-       if(ksector/=0.AND.jsector/=0)then
+          if(jsector/=0)then
           if(MpiMaster)then
              call build_sector(isector,sectorI)
              call build_sector(ksector,sectorK)
@@ -422,6 +427,7 @@ contains
           deallocate(alfa_,beta_)
           if(allocated(vvinit))deallocate(vvinit)
        endif
+       endif
        !
        !
 #ifdef _MPI
@@ -438,10 +444,6 @@ contains
     return
   end subroutine lanc_ed_build_exctChi_tripletXY
 
-  !################################################################
-  !################################################################
-  !################################################################
-  !################################################################
 
 
 
@@ -468,7 +470,6 @@ contains
     !
     if(.not.any([0,1,2]==indx))stop "add_to_lanczos_exctChi ERROR: indx/=any[0,1,2]"
     !
-    print*,indx,vnorm2
     pesoF  = vnorm2/zeta_function 
     pesoBZ = 1d0
     if(finiteT)pesoBZ = exp(-beta*(Ei-Egs))

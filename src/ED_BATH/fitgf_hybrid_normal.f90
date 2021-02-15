@@ -97,13 +97,15 @@ subroutine chi2_fitgf_hybrid_normal(fg,bath_,ispin)
      if(cg_grad==0)then
         select case (cg_scheme)
         case ("weiss")
-           call fmin_cg(array_bath,chi2_weiss_hybrid_normal,grad_chi2_weiss_hybrid_normal,iter,chi,&
+           call fmin_cg(array_bath,chi2_weiss_hybrid_normal,grad_chi2_weiss_hybrid_normal,&
+                iter,chi,&
                 itmax=cg_niter,&
                 ftol=cg_Ftol,  &
                 istop=cg_stop, &
                 iverbose=(ed_verbose>3))
         case ("delta")
-           call fmin_cg(array_bath,chi2_delta_hybrid_normal,grad_chi2_delta_hybrid_normal,iter,chi,&
+           call fmin_cg(array_bath,chi2_delta_hybrid_normal,grad_chi2_delta_hybrid_normal,&
+                iter,chi,&
                 itmax=cg_niter,&
                 ftol=cg_Ftol,  &
                 istop=cg_stop, &
@@ -114,13 +116,15 @@ subroutine chi2_fitgf_hybrid_normal(fg,bath_,ispin)
      else
         select case (cg_scheme)
         case ("weiss")
-           call fmin_cg(array_bath,chi2_weiss_hybrid_normal,iter,chi,&
+           call fmin_cg(array_bath,chi2_weiss_hybrid_normal,&
+                iter,chi,&
                 itmax=cg_niter,&
                 ftol=cg_Ftol, &
                 istop=cg_stop,&
                 iverbose=(ed_verbose>3))
         case ("delta")
-           call fmin_cg(array_bath,chi2_delta_hybrid_normal,iter,chi,&
+           call fmin_cg(array_bath,chi2_delta_hybrid_normal,&
+                iter,chi,&
                 itmax=cg_niter,&
                 ftol=cg_Ftol, &
                 istop=cg_stop,&

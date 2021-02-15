@@ -4,8 +4,10 @@ MODULE ED_HAMILTONIAN_COMMON
   USE SF_SP_LINALG, only: sp_lanc_tridiag
   USE ED_INPUT_VARS
   USE ED_VARS_GLOBAL
+  USE ED_AUX_FUNX
   USE ED_BATH
   USE ED_SETUP
+  USE ED_SECTOR
   implicit none
 
   !
@@ -15,12 +17,8 @@ MODULE ED_HAMILTONIAN_COMMON
   integer,allocatable,dimension(:)          :: DimUps
   integer,allocatable,dimension(:)          :: DimDws
   !
-  ! integer                                   :: Hsector=0
-  ! logical                                   :: Hstatus=.false.
-  ! type(sector_map),dimension(:),allocatable :: Hs
   type(sector)                              :: Hsector
-
-
+  !
   integer                                   :: iiup,iidw,jjup,jjdw
   integer                                   :: iud,jj
   integer                                   :: ishift
@@ -41,8 +39,6 @@ MODULE ED_HAMILTONIAN_COMMON
   real(8),dimension(:,:,:),allocatable      :: diag_hybr ![Nspin,Norb,Nbath]
   real(8),dimension(:,:,:),allocatable      :: bath_diag ![Nspin,Norb/1,Nbath]
 
-
-  integer,save,public                       :: iter=0
 
 contains
 

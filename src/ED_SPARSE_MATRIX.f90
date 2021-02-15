@@ -59,13 +59,6 @@ MODULE ED_SPARSE_MATRIX  !THIS VERSION CONTAINS ONLY DBLE ELEMENT: (SYMMETRIC MA
   end interface sp_insert_element
 
 
-  !LOAD STANDARD MATRIX INTO SPARSE MATRICES
-  interface sp_load_matrix
-     module procedure :: sp_load_matrix_csr
-#ifdef _MPI
-     module procedure :: mpi_sp_load_matrix_csr
-#endif
-  end interface sp_load_matrix
 
 
   !DUMP SPARSE MATRIX INTO STANDARD MATRIX
@@ -77,13 +70,6 @@ MODULE ED_SPARSE_MATRIX  !THIS VERSION CONTAINS ONLY DBLE ELEMENT: (SYMMETRIC MA
   end interface sp_dump_matrix
 
 
-  !SPY PRINT SPARSE MATRIX
-  interface sp_spy_matrix
-     module procedure :: sp_spy_matrix_csr
-#ifdef _MPI
-     module procedure :: mpi_sp_spy_matrix_csr
-#endif
-  end interface sp_spy_matrix
 
 #ifdef _MPI  
   interface sp_set_mpi_matrix
@@ -97,9 +83,7 @@ MODULE ED_SPARSE_MATRIX  !THIS VERSION CONTAINS ONLY DBLE ELEMENT: (SYMMETRIC MA
   public :: sp_init_matrix      !init the sparse matrix   !checked
   public :: sp_delete_matrix    !delete the sparse matrix !checked
   public :: sp_insert_element   !insert an element        !checked
-  public :: sp_load_matrix      !create sparse from array !checked
   public :: sp_dump_matrix      !dump sparse into array   !checked
-  public :: sp_spy_matrix       !
 #ifdef _MPI
   public :: sp_set_mpi_matrix
 #endif
@@ -186,7 +170,7 @@ contains
     integer                               :: i
     type(sparse_row_csr),pointer          :: row
     !
-    if(.not.sparse%status)return !stop "Warning SPARSE/sp_delete_matrix: sparse not allocated already."
+    if(.not.sparse%status)return !stop "Error SPARSE/sp_delete_matrix: sparse not allocated already."
     !
     do i=1,sparse%Nrow
        deallocate(sparse%row(i)%vals)
@@ -273,8 +257,6 @@ contains
     if(iadd)then                            !this column exists so just sum it up       
        row%vals(pos)=row%vals(pos) + value  !add up value to the current one in %vals
     else                                    !this column is new. increase counter and store it 
-       ! row%vals = [row%vals,value]
-       ! row%cols = [row%cols,column]
        call add_to(row%vals,value)
        call add_to(row%cols,column)
        row%Size = row%Size + 1
@@ -327,53 +309,6 @@ contains
 
 
 
-
-
-  !+------------------------------------------------------------------+
-  !PURPOSE: load a regular matrix (2dim array) into a sparse matrix
-  !+------------------------------------------------------------------+
-  subroutine sp_load_matrix_csr(matrix,sparse)
-    real(8),dimension(:,:),intent(in) :: matrix
-    type(sparse_matrix_csr),intent(inout) :: sparse    
-    integer                           :: i,j,Ndim1,Ndim2
-    !
-    Ndim1=size(matrix,1)
-    Ndim2=size(matrix,2)   
-    !
-    if(sparse%status)call sp_delete_matrix_csr(sparse)
-    call sp_init_matrix_csr(sparse,Ndim1,Ndim2)
-    !
-    do i=1,Ndim1
-       do j=1,Ndim2
-          if(matrix(i,j)/=0.d0)call sp_insert_element_csr(sparse,matrix(i,j),i,j)
-       enddo
-    enddo
-  end subroutine sp_load_matrix_csr
-
-#ifdef _MPI
-  subroutine mpi_sp_load_matrix_csr(MpiComm,matrix,sparse)
-    integer                               :: MpiComm
-    real(8),dimension(:,:),intent(in)     :: matrix
-    type(sparse_matrix_csr),intent(inout) :: sparse    
-    integer                               :: i,j,Ndim1,Ndim2
-    !
-    if(MpiComm==Mpi_Comm_Null)return
-    !
-    call sp_test_matrix_mpi(MpiComm,sparse," mpi_sp_load_matrix_csr")
-    !
-    Ndim1=size(matrix,1)
-    Ndim2=size(matrix,2)
-    !
-    if(sparse%status)call sp_delete_matrix_csr(sparse)
-    call mpi_sp_init_matrix_csr(MpiComm,sparse,Ndim1,Ndim2)
-    !
-    do i=sparse%Istart,sparse%Iend
-       do j=1,Ndim2
-          if(matrix(i,j)/=0.d0)call mpi_sp_insert_element_csr(MpiComm,sparse,matrix(i,j),i,j)
-       enddo
-    enddo
-  end subroutine mpi_sp_load_matrix_csr
-#endif
 
 
 
@@ -438,131 +373,6 @@ contains
   end subroutine mpi_sp_dump_matrix_csr
 #endif
 
-
-
-
-
-
-
-
-
-  !+------------------------------------------------------------------+
-  !PURPOSE: pretty print a sparse matrix on a given unit using format fmt
-  !+------------------------------------------------------------------+  
-  subroutine sp_spy_matrix_csr(sparse,header)
-    type(sparse_matrix_csr)          :: sparse
-    character ( len = * )           :: header
-    integer                         :: N1,N2
-    character ( len = 255 )         :: command_filename
-    integer                         :: command_unit
-    character ( len = 255 )         :: data_filename
-    integer                         :: data_unit
-    integer                         :: i, j
-    character ( len = 6 )           :: n1_s,n2_s,n1_i,n2_i
-    integer                         :: nz_num
-    character ( len = 255 )         :: png_filename
-    !
-    !  Create data file.
-    !
-    !
-    N1 = sparse%Nrow
-    N2 = sparse%Ncol
-    data_filename = trim ( header ) // '_data.dat'
-    open (unit=free_unit(data_unit), file = data_filename, status = 'replace' )
-    nz_num = 0
-    do i=1,N1
-       do j=1,sparse%row(i)%size
-          write(data_unit,'(2x,i6,2x,i6)') sparse%row(i)%cols(j),i
-          nz_num = nz_num + 1
-       enddo
-    enddo
-    close(data_unit)
-    !
-    !  Create command file.
-    !
-    command_filename = "plot_"//str(header)//'_commands.gp'
-    open(unit = free_unit(command_unit), file = command_filename, status = 'replace' )
-    write(command_unit,'(a)') '#unset key'
-    write(command_unit,'(a)') 'set terminal postscript eps enhanced color font "Times-Roman,16"'
-    write(command_unit,'(a)') 'set output "|ps2pdf -sEPSCrop - '//str(header)//".pdf"//'"'
-    write(command_unit,'(a)') 'set size ratio -1'
-    write(command_unit,'(a)') 'set xlabel "<--- J --->"'
-    write(command_unit,'(a)') 'set ylabel "<--- I --->"'
-    write(command_unit,'(a,i6,a)')'set title "',nz_num,' nonzeros for '//str(header)//'"'
-    write(command_unit,'(a)') 'set timestamp'
-    write(command_unit,'(a)' )'plot [x=1:'//str(N1)//'] [y='//str(N2)//':1] "'//&
-         str(data_filename)//'" w p pt 5 ps 0.4 lc rgb "red"'
-    close ( unit = command_unit )
-    return
-  end subroutine sp_spy_matrix_csr
-
-
-
-#ifdef _MPI
-  subroutine mpi_sp_spy_matrix_csr(MpiComm,sparse,header)
-    integer                         :: MpiComm
-    type(sparse_matrix_csr)          :: sparse
-    character ( len = * )           :: header
-    integer                         :: N1,N2,N1_,N2_
-    character ( len = 255 )         :: command_filename
-    integer                         :: command_unit
-    character ( len = 255 )         :: data_filename(1)
-    integer                         :: data_unit
-    integer                         :: i, j
-    character ( len = 6 )           :: n1_s,n2_s,n1_i,n2_i
-    integer                         :: nz_num,mpirank
-    character ( len = 255 )         :: png_filename
-    !
-    if(MpiComm==Mpi_Comm_Null)return
-    !
-    call sp_test_matrix_mpi(MpiComm,sparse," mpi_sp_spy_matrix_csr")
-    !
-    MpiRank  = get_Rank_MPI(MpiComm)
-    !
-    !  Create data file.
-    !
-    N1_=sparse%Nrow
-    N2_=sparse%Ncol
-    N1=0
-    N2=0
-    call MPI_AllReduce(N1_,N1,1,MPI_Integer,MPI_SUM,MpiComm,MpiIerr)
-    call MPI_AllReduce(N2_,N2,1,MPI_Integer,MPI_MAX,MpiComm,MpiIerr)
-    !
-    nz_num = 0
-    !
-    data_filename(1) = trim(header)//"_rank"//str(MpiRank,4)//'_matrix.dat'
-    open(unit=free_unit(data_unit),file=data_filename(1), status = 'replace' )
-    do i=1,sparse%Nrow
-       do j=1,sparse%row(i)%Size
-          write(data_unit,'(2x,i6,2x,i6)') sparse%row(i)%cols(j),i+sparse%Ishift
-          nz_num = nz_num + 1
-       enddo
-    enddo
-    write(data_unit,'(2x,i6,2x,i6)')
-    close(data_unit)
-    !
-    !
-    call MPI_Barrier(MpiComm,MpiIerr)
-    !
-    !  Create command file.
-    !
-    command_filename = "plot_"//trim(header)//"_rank"//str(MpiRank,4)//'_commands.gp'
-    open(unit = free_unit(command_unit), file = command_filename, status = 'replace' )
-    write(command_unit,'(a)') '#unset key'
-    write(command_unit,'(a)') 'set terminal postscript eps enhanced color font "Times-Roman,16"'
-    write(command_unit,'(a)') 'set output "|ps2pdf -sEPSCrop - '//str(header)//"_rank"//str(MpiRank,4)//".pdf"//'"'
-    write(command_unit,'(a)') 'set size ratio -1'
-    write(command_unit,'(a)') 'set xlabel "<--- J --->"'
-    write(command_unit,'(a)') 'set ylabel "<--- I --->"'
-    write(command_unit,'(a,i6,a)' ) &
-         'set title "',nz_num,' nonzeros for '//str(header)//"_rank"//str(MpiRank,4)//'"'
-    write(command_unit,'(a)') 'set timestamp'
-    write(command_unit,'(a)' )'plot [x=1:'//str(N1)//'] [y='//str(N2)//':1] "'//&
-         str(data_filename(1))//'" w p pt 5 ps 0.4 lc rgb "red"'
-    close ( unit = command_unit )
-    return
-  end subroutine mpi_sp_spy_matrix_csr
-#endif
 
 
 
