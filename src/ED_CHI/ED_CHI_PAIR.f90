@@ -34,6 +34,7 @@ MODULE ED_CHI_PAIR
 contains
 
 
+  
   !+------------------------------------------------------------------+
   !                            PAIR
   !PURPOSE  : Evaluate the pair susceptibility \Chi_pair for a 
@@ -44,12 +45,7 @@ contains
     do iorb=1,Norb
        write(LOGfile,"(A)")"Get Chi_pair_l"//reg(txtfy(iorb))
        if(MPIMASTER)call start_timer()
-       select case(ed_diag_type)
-       case default
-          call lanc_ed_build_pairChi_diag(iorb)
-       case ("full")
-          write(LOGfile,"(A)")"Chi_pair not available in Full ED"
-       end select
+       call lanc_ed_build_pairChi_diag(iorb)
        if(MPIMASTER)call stop_timer(unit=LOGfile)
     enddo
 
@@ -58,12 +54,7 @@ contains
           do jorb=iorb+1,Norb
              write(LOGfile,"(A)")"Get Chi_pair_mix_l"//reg(txtfy(iorb))//reg(txtfy(jorb))
              if(MPIMASTER)call start_timer()
-             select case(ed_diag_type)
-             case default
-                call lanc_ed_build_pairChi_mix(iorb,jorb)
-             case ("full")
-                write(LOGfile,"(A)")"Chi_pair not available in Full ED"
-             end select
+             call lanc_ed_build_pairChi_mix(iorb,jorb)
              if(MPIMASTER)call stop_timer(unit=LOGfile)
           end do
        end do
@@ -71,15 +62,9 @@ contains
        !
        do iorb=1,Norb
           do jorb=iorb+1,Norb
-             select case(ed_diag_type)
-             case default
-                pairChi_w(iorb,jorb,:)   = 0.5d0*(pairChi_w(iorb,jorb,:) - pairChi_w(iorb,iorb,:) - pairChi_w(jorb,jorb,:))
-                pairChi_tau(iorb,jorb,:) = 0.5d0*(pairChi_tau(iorb,jorb,:) - pairChi_tau(iorb,iorb,:) - pairChi_tau(jorb,jorb,:))
-                pairChi_iv(iorb,jorb,:)  = 0.5d0*(pairChi_iv(iorb,jorb,:) - pairChi_iv(iorb,iorb,:) - pairChi_iv(jorb,jorb,:))
-                !
-             case ("full")
-                !
-             end select
+             pairChi_w(iorb,jorb,:)   = 0.5d0*(pairChi_w(iorb,jorb,:) - pairChi_w(iorb,iorb,:) - pairChi_w(jorb,jorb,:))
+             pairChi_tau(iorb,jorb,:) = 0.5d0*(pairChi_tau(iorb,jorb,:) - pairChi_tau(iorb,iorb,:) - pairChi_tau(jorb,jorb,:))
+             pairChi_iv(iorb,jorb,:)  = 0.5d0*(pairChi_iv(iorb,jorb,:) - pairChi_iv(iorb,iorb,:) - pairChi_iv(jorb,jorb,:))
              !
              pairChi_w(jorb,iorb,:)   = pairChi_w(iorb,jorb,:)
              pairChi_tau(jorb,iorb,:) = pairChi_tau(iorb,jorb,:)
@@ -88,7 +73,6 @@ contains
        enddo
     endif
     !
-
   end subroutine build_chi_pair
 
 
@@ -131,7 +115,6 @@ contains
              call build_sector(jsector,sectorJ)
              if(ed_verbose>=3)write(LOGfile,"(A,I6,20I4)")&
                   'Apply Cup*Cdw  :',isector,sectorI%Nups,sectorI%Ndws
-
              allocate(vvinit_tmp(sectorK%Dim)) ;  vvinit_tmp=0d0
              allocate(vvinit(sectorJ%Dim))     ;  vvinit=0d0
              !C_dw|gs>=|tmp>

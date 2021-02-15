@@ -64,36 +64,11 @@ MODULE ED_OBSERVABLES
 
 contains 
 
-  !+-------------------------------------------------------------------+
-  !PURPOSE  : Evaluate and print out many interesting physical qties
-  !+-------------------------------------------------------------------+
-  subroutine observables_impurity()
-    select case(ed_diag_type)
-    case default
-       call lanc_observables()
-    case ("full")
-       call full_observables()
-    end select
-  end subroutine observables_impurity
-
-
-
-  subroutine local_energy_impurity()
-    select case(ed_diag_type)
-    case default
-       call lanc_local_energy()
-    case ("full")
-       call full_local_energy()
-    end select
-  end subroutine local_energy_impurity
-
-
-
 
   !+-------------------------------------------------------------------+
   !PURPOSE  : Lanc method
   !+-------------------------------------------------------------------+
-  subroutine lanc_observables()
+  subroutine observables_impurity()
     integer                         :: iprob,istate,Nud(2,Ns),iud(2),jud(2),val
     integer,dimension(2*Ns_Ud)      :: Indices,Jndices
     integer,dimension(Ns_Ud,Ns_Orb) :: Nups,Ndws  ![1,Ns]-[Norb,1+Nbath]
@@ -423,6 +398,7 @@ contains
           ed_dens_dw(iorb)=dens_dw(iorb)
           ed_dens(iorb)   =dens(iorb)
           ed_docc(iorb)   =docc(iorb)
+          ed_mag(iorb)    =dens_up(iorb)-dens_dw(iorb)
        enddo
     endif
 #ifdef _MPI
@@ -431,13 +407,14 @@ contains
        call Bcast_MPI(MpiComm,ed_dens_dw)
        call Bcast_MPI(MpiComm,ed_dens)
        call Bcast_MPI(MpiComm,ed_docc)
+       call Bcast_MPI(MpiComm,ed_mag)
     endif
 #endif
     !
     deallocate(dens,docc,dens_up,dens_dw,magz,sz2,n2,Prob)
     deallocate(exct_S0,exct_Tz)
     deallocate(simp,zimp,prob_ph,pdf_ph,pdf_part)
-  end subroutine lanc_observables
+  end subroutine observables_impurity
 
 
 
@@ -446,7 +423,7 @@ contains
   !+-------------------------------------------------------------------+
   !PURPOSE  : Get internal energy from the Impurity problem.
   !+-------------------------------------------------------------------+
-  subroutine lanc_local_energy()
+  subroutine local_energy_impurity()
     integer                             :: istate,iud(2),jud(2)
     integer,dimension(2*Ns_Ud)          :: Indices,Jndices
     integer,dimension(Ns_Ud,Ns_Orb)     :: Nups,Ndws  ![1,Ns]-[Norb,1+Nbath]
@@ -684,361 +661,8 @@ contains
     endif
     !
     !
-  end subroutine lanc_local_energy
+  end subroutine local_energy_impurity
 
-
-
-
-
-  !####################################################################
-  !####################################################################
-  !####################################################################
-  !####################################################################
-  !####################################################################
-
-
-
-
-
-
-  subroutine full_observables()
-    integer                             :: iprob,i,j
-    integer                             :: izero,istate
-    integer                             :: isector,jsector
-    integer                             :: idim,jdim
-    integer                             :: iorb,jorb,ispin,jspin,isite,jsite
-    integer                             :: numstates
-    integer                             :: r,m,k,val
-    real(8)                             :: sgn,sgn1,sgn2
-    real(8)                             :: boltzman_weight
-    real(8)                             :: state_weight
-    real(8)                             :: weight
-    real(8)                             :: Ei
-    real(8)                             :: norm,beta_
-    integer                             :: Nud(2,Ns),iud(2),jud(2)
-    integer,dimension(2*Ns_Ud)          :: Indices,Jndices
-    integer,dimension(Ns_Ud,Ns_Orb)     :: Nups,Ndws  ![1,Ns]-[Norb,1+Nbath]
-    integer,dimension(Ns)               :: IbUp,IbDw  ![Ns]
-    real(8),dimension(Norb)             :: nup,ndw,Sz,nt
-    real(8),dimension(:),pointer        :: evec
-    !
-    !
-    !LOCAL OBSERVABLES:
-    allocate(dens(Norb),dens_up(Norb),dens_dw(Norb))
-    allocate(docc(Norb))
-    allocate(magz(Norb),sz2(Norb,Norb),n2(Norb,Norb))
-    allocate(simp(Norb,Nspin),zimp(Norb,Nspin))
-    allocate(Prob(3**Norb))
-    allocate(prob_ph(DimPh))
-    allocate(pdf_ph(Lpos))
-    allocate(pdf_part(Lpos,3))
-    !
-    egs     = gs_energy
-    dens    = 0.d0
-    dens_up = 0.d0
-    dens_dw = 0.d0
-    docc    = 0.d0
-    magz    = 0.d0
-    sz2     = 0.d0
-    n2      = 0.d0
-    s2tot   = 0.d0
-    Prob    = 0.d0
-    prob_ph = 0.d0
-    dens_ph = 0.d0
-    pdf_ph  = 0.d0
-    pdf_part= 0.d0
-    w_ph    = w0_ph
-    !
-    beta_ = beta
-    if(.not.finiteT)beta_=1000d0
-    !
-    do isector=1,Nsectors
-       call build_sector(isector,sectorI)
-       !
-       do istate=1,sectorI%Dim
-          Ei=espace(isector)%e(istate)
-          boltzman_weight=exp(-beta_*Ei)/zeta_function
-          if(boltzman_weight < cutoff)cycle
-          !
-          evec => espace(isector)%M(:,istate)
-          !
-          do i=1,sectorI%Dim
-             iph = (i-1)/(sectorI%DimEl) + 1
-             i_el = mod(i-1,sectorI%DimEl) + 1
-             !
-             call state2indices(i_el,[sectorI%DimUps,sectorI%DimDws],Indices)
-             do ii=1,Ns_Ud
-                mup = sectorI%H(ii)%map(Indices(ii))
-                mdw = sectorI%H(ii+Ns_Ud)%map(Indices(ii+Ns_ud))
-                Nups(ii,:) = Bdecomp(mup,Ns_Orb) ![Norb,1+Nbath]
-                Ndws(ii,:) = Bdecomp(mdw,Ns_Orb)
-             enddo
-             IbUp = Breorder(Nups)
-             IbDw = Breorder(Ndws)
-             !
-             state_weight=(evec(i))*evec(i)
-             weight = boltzman_weight*state_weight
-             !
-             !Get operators:
-             do iorb=1,Norb
-                nup(iorb)= dble(IbUp(iorb))
-                ndw(iorb)= dble(IbDw(iorb))
-                sz(iorb) = (nup(iorb) - ndw(iorb))/2.d0
-                nt(iorb) =  nup(iorb) + ndw(iorb)
-             enddo
-             !
-             !Configuration probability
-             iprob=1
-             do iorb=1,Norb
-                iprob=iprob+nint(nt(iorb))*3**(iorb-1)
-             end do
-             Prob(iprob) = Prob(iprob) + weight
-             !
-             !Evaluate averages of observables:
-             do iorb=1,Norb
-                dens(iorb)     = dens(iorb)      +  nt(iorb)*weight
-                dens_up(iorb)  = dens_up(iorb)   +  nup(iorb)*weight
-                dens_dw(iorb)  = dens_dw(iorb)   +  ndw(iorb)*weight
-                docc(iorb)     = docc(iorb)      +  nup(iorb)*ndw(iorb)*weight
-                magz(iorb)     = magz(iorb)      +  (nup(iorb)-ndw(iorb))*weight
-                sz2(iorb,iorb) = sz2(iorb,iorb)  +  (sz(iorb)*sz(iorb))*weight
-                n2(iorb,iorb)  = n2(iorb,iorb)   +  (nt(iorb)*nt(iorb))*weight
-                do jorb=iorb+1,Norb
-                   sz2(iorb,jorb) = sz2(iorb,jorb)  +  (sz(iorb)*sz(jorb))*weight
-                   sz2(jorb,iorb) = sz2(jorb,iorb)  +  (sz(jorb)*sz(iorb))*weight
-                   n2(iorb,jorb)  = n2(iorb,jorb)   +  (nt(iorb)*nt(jorb))*weight
-                   n2(jorb,iorb)  = n2(jorb,iorb)   +  (nt(jorb)*nt(iorb))*weight
-                enddo
-             enddo
-             s2tot = s2tot  + (sum(sz))**2*weight
-             prob_ph(iph) = prob_ph(iph) + weight
-             dens_ph = dens_ph + (iph-1)*weight
-             !
-             !compute the lattice probability distribution function
-             if(DimPh>1 .AND. iph==1) then
-                val = 1
-                do iorb=1,Norb
-                   val = val + abs(nint(sign((nt(iorb) - 1.d0),g_ph(iorb))))
-                enddo
-                call prob_distr_ph(evec,val)
-             end if
-          enddo
-          !
-       enddo
-       call delete_sector(sectorI)
-       if(associated(evec))nullify(evec)
-    enddo
-    !
-    call get_szr
-    if(DimPh>1) w_ph = sqrt(-2.d0*w0_ph/impDmats_ph(0))
-    if(iolegend)call write_legend
-    call write_observables()
-    if(DimPh>1)call write_pdf()
-    !
-    write(LOGfile,"(A,10f18.12,f18.12,A)")"dens"//reg(ed_file_suffix)//"=",(dens(iorb),iorb=1,Norb),sum(dens)
-    write(LOGfile,"(A,10f18.12,A)")"docc"//reg(ed_file_suffix)//"=",(docc(iorb),iorb=1,Norb)
-    if(Nspin==2)write(LOGfile,"(A,10f18.12,A)") "mag "//reg(ed_file_suffix)//"=",(magz(iorb),iorb=1,Norb)
-    !
-    do iorb=1,Norb
-       ed_dens_up(iorb)=dens_up(iorb)
-       ed_dens_dw(iorb)=dens_dw(iorb)
-       ed_dens(iorb)   =dens(iorb)
-       ed_docc(iorb)   =docc(iorb)
-    enddo
-    !
-    deallocate(dens,docc,dens_up,dens_dw,magz,sz2,n2,Prob)
-    deallocate(simp,zimp,prob_ph,pdf_ph,pdf_part)    
-  end subroutine full_observables
-
-
-
-
-  subroutine full_local_energy()
-    integer                             :: i,j
-    integer                             :: izero,istate
-    integer                             :: isector
-    integer                             :: iorb,jorb,ispin
-    integer                             :: numstates
-    integer                             :: m,k1,k2,k3,k4
-    real(8)                             :: sg1,sg2,sg3,sg4
-    real(8)                             :: Ei
-    real(8)                             :: boltzman_weight
-    real(8)                             :: state_weight
-    real(8)                             :: weight
-    real(8)                             :: norm,beta_
-    real(8),dimension(Nspin,Norb)       :: eloc
-    real(8),dimension(:),pointer        :: evec
-    integer                             :: iud(2),jud(2)
-    integer,dimension(2*Ns_Ud)          :: Indices,Jndices
-    integer,dimension(Ns_Ud,Ns_Orb)     :: Nups,Ndws  ![1,Ns]-[Norb,1+Nbath]
-    real(8),dimension(Ns)               :: Nup,Ndw
-    logical                             :: Jcondition
-    !
-    !
-    ed_Ehartree= 0.d0
-    ed_Eknot   = 0.d0
-    ed_Epot    = 0.d0
-    ed_Dust    = 0.d0
-    ed_Dund    = 0.d0
-    ed_Dse     = 0.d0
-    ed_Dph     = 0.d0
-    !
-    !Get diagonal part of Hloc
-    do ispin=1,Nspin
-       do iorb=1,Norb
-          eloc(ispin,iorb)=impHloc(ispin,ispin,iorb,iorb)
-       enddo
-    enddo
-    !
-    beta_ = beta
-    if(.not.finiteT)beta_=1000d0
-    !
-    do isector=1,Nsectors
-       call build_sector(isector,sectorI)
-       !
-       do istate=1,sectorI%Dim
-          Ei=espace(isector)%e(istate)
-          boltzman_weight=exp(-beta_*Ei)/zeta_function
-          if(boltzman_weight < cutoff)cycle
-          !
-          evec => espace(isector)%M(:,istate)
-          !
-          do i=1,sectorI%Dim
-             iph = (i-1)/(sectorI%DimEl) + 1
-             i_el = mod(i-1,sectorI%DimEl) + 1
-             !
-             call state2indices(i_el,[sectorI%DimUps,sectorI%DimDws],Indices)
-             do ii=1,Ns_Ud
-                mup = sectorI%H(ii)%map(Indices(ii))
-                mdw = sectorI%H(ii+Ns_Ud)%map(Indices(ii+Ns_ud))
-                Nups(ii,:) = Bdecomp(mup,Ns_Orb) ![Norb,1+Nbath]
-                Ndws(ii,:) = Bdecomp(mdw,Ns_Orb)
-             enddo
-             Nup = Breorder(Nups)
-             Ndw = Breorder(Ndws)
-             !
-             state_weight = (evec(i))*evec(i)
-             weight = boltzman_weight*state_weight
-             !
-             !
-             !start evaluating the Tr(H_loc) to estimate potential energy
-             !
-             !LOCAL ENERGY
-             ed_Eknot = ed_Eknot + dot_product(eloc(1,:),nup(1:Norb))*weight + dot_product(eloc(Nspin,:),ndw(1:Norb))*weight
-             !> H_imp: Off-diagonal elements, i.e. non-local part. 
-             if(ed_total_ud)then
-                iup = Indices(1)  ; idw = Indices(2)
-                mup = sectorI%H(1)%map(iup) ; mdw = sectorI%H(2)%map(idw)
-                do iorb=1,Norb
-                   do jorb=1,Norb
-                      !UP
-                      Jcondition = &
-                           (impHloc(1,1,iorb,jorb)/=0d0) .AND. &
-                           (Nup(jorb)==1) .AND. (Nup(iorb)==0)
-                      if (Jcondition) then
-                         call c(jorb,mup,k1,sg1)
-                         call cdg(iorb,k1,k2,sg2)
-                         jup = binary_search(sectorI%H(1)%map,k2)
-                         j   = jup + (idw-1)*sectorI%DimUp
-                         ed_Eknot = ed_Eknot + &
-                              impHloc(1,1,iorb,jorb)*sg1*sg2*state_cvec(i)*(state_cvec(j))*boltzman_weight
-                      endif
-                      !
-                      !DW
-                      Jcondition = &
-                           (impHloc(Nspin,Nspin,iorb,jorb)/=0d0) .AND. &
-                           (ndw(jorb)==1) .AND. (ndw(iorb)==0)
-                      if (Jcondition) then
-                         call c(jorb,mdw,k1,sg1)
-                         call cdg(iorb,k1,k2,sg2)
-                         jdw = binary_search(sectorI%H(2)%map,k2)
-                         j   = iup + (jdw-1)*sectorI%DimUp
-                         ed_Eknot = ed_Eknot + &
-                              impHloc(Nspin,Nspin,iorb,jorb)*sg1*sg2*state_cvec(i)*(state_cvec(j))*boltzman_weight
-                      endif
-                   enddo
-                enddo
-             endif
-             !
-             !
-             !DENSITY-DENSITY INTERACTION: SAME ORBITAL, OPPOSITE SPINS
-             !Euloc=\sum=i U_i*(n_u*n_d)_i
-             !ed_Epot = ed_Epot + dot_product(uloc,nup*ndw)*weight
-             do iorb=1,Norb
-                ed_Epot = ed_Epot + Uloc(iorb)*nup(iorb)*ndw(iorb)*weight
-             enddo
-             !
-             !DENSITY-DENSITY INTERACTION: DIFFERENT ORBITALS, OPPOSITE SPINS
-             !Eust=\sum_ij Ust*(n_up_i*n_dn_j + n_up_j*n_dn_i)
-             !    "="\sum_ij (Uloc - 2*Jh)*(n_up_i*n_dn_j + n_up_j*n_dn_i)
-             if(Norb>1)then
-                do iorb=1,Norb
-                   do jorb=iorb+1,Norb
-                      ed_Epot = ed_Epot + Ust*(nup(iorb)*ndw(jorb) + nup(jorb)*ndw(iorb))*weight
-                      ed_Dust = ed_Dust + (nup(iorb)*ndw(jorb) + nup(jorb)*ndw(iorb))*weight
-                   enddo
-                enddo
-             endif
-             !
-             !DENSITY-DENSITY INTERACTION: DIFFERENT ORBITALS, PARALLEL SPINS
-             !Eund = \sum_ij Und*(n_up_i*n_up_j + n_dn_i*n_dn_j)
-             !    "="\sum_ij (Ust-Jh)*(n_up_i*n_up_j + n_dn_i*n_dn_j)
-             !    "="\sum_ij (Uloc-3*Jh)*(n_up_i*n_up_j + n_dn_i*n_dn_j)
-             if(Norb>1)then
-                do iorb=1,Norb
-                   do jorb=iorb+1,Norb
-                      ed_Epot = ed_Epot + (Ust-Jh)*(nup(iorb)*nup(jorb) + ndw(iorb)*ndw(jorb))*weight
-                      ed_Dund = ed_Dund + (nup(iorb)*nup(jorb) + ndw(iorb)*ndw(jorb))*weight
-                   enddo
-                enddo
-             endif
-             !
-             !HARTREE-TERMS CONTRIBUTION:
-             if(hfmode)then
-                do iorb=1,Norb
-                   ed_Ehartree=ed_Ehartree - 0.5d0*uloc(iorb)*(nup(iorb)+ndw(iorb))*weight + 0.25d0*uloc(iorb)*weight
-                enddo
-                if(Norb>1)then
-                   do iorb=1,Norb
-                      do jorb=iorb+1,Norb
-                         ed_Ehartree=ed_Ehartree - 0.5d0*Ust*(nup(iorb)+ndw(iorb)+nup(jorb)+ndw(jorb))*weight + 0.25d0*Ust*weight
-                         ed_Ehartree=ed_Ehartree - 0.5d0*(Ust-Jh)*(nup(iorb)+ndw(iorb)+nup(jorb)+ndw(jorb))*weight + 0.25d0*(Ust-Jh)*weight
-                      enddo
-                   enddo
-                endif
-             endif
-          enddo
-       enddo
-       call delete_sector(sectorI)
-       if(associated(evec))nullify(evec)
-    enddo
-    ed_Epot = ed_Epot + ed_Ehartree
-    !
-    if(ed_verbose==3)then
-       write(LOGfile,"(A,10f18.12)")"<Hint>  =",ed_Epot
-       write(LOGfile,"(A,10f18.12)")"<V>     =",ed_Epot-ed_Ehartree
-       write(LOGfile,"(A,10f18.12)")"<E0>    =",ed_Eknot
-       write(LOGfile,"(A,10f18.12)")"<Ehf>   =",ed_Ehartree    
-       write(LOGfile,"(A,10f18.12)")"Dust    =",ed_Dust
-       write(LOGfile,"(A,10f18.12)")"Dund    =",ed_Dund
-    endif
-    call write_energy_info()
-    call write_energy()
-    !
-    !
-  end subroutine full_local_energy
-
-
-
-
-
-
-
-  !####################################################################
-  !####################################################################
-  !####################################################################
-  !####################################################################
-  !####################################################################
 
 
 

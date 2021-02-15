@@ -49,12 +49,7 @@ contains
     do iorb=1,Norb
        write(LOGfile,"(A)")"Get Chi_spin_l"//reg(txtfy(iorb))
        if(MPIMASTER)call start_timer()
-       select case(ed_diag_type)
-       case default
-          call lanc_ed_build_spinChi_diag(iorb)
-       case ("full")
-          call full_ed_build_spinChi_main(iorb,iorb)
-       end select
+       call lanc_ed_build_spinChi_diag(iorb)
        if(MPIMASTER)call stop_timer(unit=LOGfile)
     enddo
     !
@@ -63,12 +58,7 @@ contains
           do jorb=iorb+1,Norb
              write(LOGfile,"(A)")"Get Chi_spin_mix_l"//reg(txtfy(iorb))//reg(txtfy(jorb))
              if(MPIMASTER)call start_timer()
-             select case(ed_diag_type)
-             case default
-                call lanc_ed_build_spinChi_mix(iorb,jorb)
-             case ("full")
-                call full_ed_build_spinChi_main(iorb,jorb)
-             end select
+             call lanc_ed_build_spinChi_mix(iorb,jorb)
              if(MPIMASTER)call stop_timer(unit=LOGfile)
           end do
        end do
@@ -76,15 +66,9 @@ contains
        !
        do iorb=1,Norb
           do jorb=iorb+1,Norb
-             select case(ed_diag_type)
-             case default
-                spinChi_w(iorb,jorb,:)   = 0.5d0*(spinChi_w(iorb,jorb,:) - spinChi_w(iorb,iorb,:) - spinChi_w(jorb,jorb,:))
-                spinChi_tau(iorb,jorb,:) = 0.5d0*(spinChi_tau(iorb,jorb,:) - spinChi_tau(iorb,iorb,:) - spinChi_tau(jorb,jorb,:))
-                spinChi_iv(iorb,jorb,:)  = 0.5d0*(spinChi_iv(iorb,jorb,:) - spinChi_iv(iorb,iorb,:) - spinChi_iv(jorb,jorb,:))
-                !
-             case ("full")
-                ! The previous calculation is not needed in the FULL ED case
-             end select
+             spinChi_w(iorb,jorb,:)   = 0.5d0*(spinChi_w(iorb,jorb,:) - spinChi_w(iorb,iorb,:) - spinChi_w(jorb,jorb,:))
+             spinChi_tau(iorb,jorb,:) = 0.5d0*(spinChi_tau(iorb,jorb,:) - spinChi_tau(iorb,iorb,:) - spinChi_tau(jorb,jorb,:))
+             spinChi_iv(iorb,jorb,:)  = 0.5d0*(spinChi_iv(iorb,jorb,:) - spinChi_iv(iorb,iorb,:) - spinChi_iv(jorb,jorb,:))
              !
              spinChi_w(jorb,iorb,:)   = spinChi_w(iorb,jorb,:)
              spinChi_tau(jorb,iorb,:) = spinChi_tau(iorb,jorb,:)
@@ -303,84 +287,6 @@ contains
 
 
 
-
-  !################################################################
-  !################################################################
-  !################################################################
-  !################################################################
-
-
-
-
-  subroutine full_ed_build_spinChi_main(iorb,jorb)
-    integer                     :: iorb,jorb
-    type(sector)                :: sectorI,sectorJ
-    real(8)                     :: Chiorb,Chjorb,Siorb,Sjorb
-    integer                     :: i,j,ll,m,isector
-    integer                     :: idim,ia
-    real(8)                     :: Ei,Ej,cc,peso,pesotot
-    real(8)                     :: expterm,de,w0,it
-    complex(8)                  :: iw 
-    !
-    !
-    !Spin susceptibility \X(tau). |<i|S_z|j>|^2
-    !
-    if(ed_total_ud)then
-       ialfa = 1
-       jalfa = 1
-       ipos  = iorb
-       jpos  = jorb
-    else
-       ialfa = iorb
-       jalfa = jorb
-       ipos  = 1
-       jpos  = 1
-    endif
-    !
-    do isector=1,Nsectors !loop over <i| total particle number
-       call eta(isector,Nsectors,LOGfile)
-       call build_sector(isector,sectorI)
-       !
-       do i=1,sectorI%Dim 
-          do j=1,sectorI%Dim
-             Chiorb=0d0
-             Chjorb=0d0
-             expterm=exp(-beta*espace(isector)%e(i))+exp(-beta*espace(isector)%e(j))
-             if(expterm<cutoff)cycle
-             do ll=1,sectorI%Dim
-                call apply_op_Sz(i,Siorb,ipos,ialfa,sectorI)
-                Chiorb   = Chiorb + espace(isector)%M(ll,i)*Siorb*espace(isector)%M(ll,j)
-                call apply_op_Sz(i,Sjorb,jpos,jalfa,sectorI)
-                Chjorb   = Chjorb + espace(isector)%M(ll,i)*Sjorb*espace(isector)%M(ll,j)
-             enddo
-             Ei=espace(isector)%e(i)
-             Ej=espace(isector)%e(j)
-             de=Ei-Ej
-             peso = Chiorb*Chjorb/zeta_function
-             !
-             !Matsubara (bosonic) frequency
-             if(beta*dE > 1d-3)spinChi_iv(iorb,jorb,0)=spinChi_iv(iorb,jorb,0) + peso*2*exp(-beta*Ej)*(1d0-exp(-beta*dE))/dE
-             do m=1,Lmats
-                spinChi_iv(iorb,jorb,m)=spinChi_iv(iorb,jorb,m)+ peso*exp(-beta*Ej)*2*dE/(vm(m)**2 + de**2)
-             enddo
-             !
-             !Imaginary time: V
-             do m=0,Ltau 
-                it=tau(m)
-                spinChi_tau(iorb,jorb,m)=spinChi_tau(iorb,jorb,m) + exp(-it*Ei)*exp(-(beta-it)*Ej)*peso
-             enddo
-             !
-             !Real-frequency: Retarded = Commutator = response function
-             do m=1,Lreal
-                iw=dcmplx(vr(m),eps)
-                spinChi_w(iorb,jorb,m)=spinChi_w(iorb,jorb,m)-peso*(exp(-beta*Ei) - exp(-beta*Ej))/(iw+de)
-             enddo
-             !
-          enddo
-       enddo
-       call delete_sector(sectorI)
-    enddo
-  end subroutine full_ed_build_spinChi_main
 
 
 

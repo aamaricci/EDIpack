@@ -50,26 +50,16 @@ contains
        do iorb=1,Norb
           do jorb=iorb+1,Norb
              write(LOGfile,"(A)")"Get singlet Chi_exct_l"//reg(txtfy(iorb))//reg(txtfy(jorb))
-             select case(ed_diag_type)
-             case default
-                if(MPIMASTER)call start_timer()
-                call lanc_ed_build_exctChi_singlet(iorb,jorb)
-                if(MPIMASTER)call stop_timer(unit=LOGfile)
-             case ("full")
-                write(LOGfile,"(A)")"Chi_exct not available in Full ED"
-             end select
-
+             if(MPIMASTER)call start_timer()
+             call lanc_ed_build_exctChi_singlet(iorb,jorb)
+             if(MPIMASTER)call stop_timer(unit=LOGfile)
+             !
              write(LOGfile,"(A)")"Get triplet Chi_exct_l"//reg(txtfy(iorb))//reg(txtfy(jorb))
-             select case(ed_diag_type)
-             case default
-                if(MPIMASTER)call start_timer()
-                call lanc_ed_build_exctChi_tripletXY(iorb,jorb)
-                call lanc_ed_build_exctChi_tripletZ(iorb,jorb)
-                if(MPIMASTER)call stop_timer(unit=LOGfile)
-             case ("full")
-                write(LOGfile,"(A)")"Chi_exct not available in Full ED"
-             end select
-
+             if(MPIMASTER)call start_timer()
+             call lanc_ed_build_exctChi_tripletXY(iorb,jorb)
+             call lanc_ed_build_exctChi_tripletZ(iorb,jorb)
+             if(MPIMASTER)call stop_timer(unit=LOGfile)
+             !
              exctChi_w(0:,jorb,iorb,:)   = exctChi_w(0:,iorb,jorb,:)
              exctChi_tau(0:,jorb,iorb,:) = exctChi_tau(0:,iorb,jorb,:)
              exctChi_iv(0:,jorb,iorb,:)  = exctChi_iv(0:,iorb,jorb,:)
@@ -352,81 +342,81 @@ contains
        !C^+_{a,dw}C_{b,up}:
        ksector = getCsector(jalfa,1,isector)
        if(ksector/=0)then
-       jsector = getCDGsector(ialfa,2,ksector)
+          jsector = getCDGsector(ialfa,2,ksector)
           if(jsector/=0)then
-            if(MpiMaster)then
-             call build_sector(isector,sectorI)
-             call build_sector(ksector,sectorK)
-             call build_sector(jsector,sectorJ)
-             if(ed_verbose>=3)write(LOGfile,"(A,I6,20I4)")&
-                  'Apply C^+_{a,dw}C_{b,up}: :',isector,sectorI%Nups,sectorI%Ndws
-             allocate(vvinit_tmp(sectorK%Dim)) ;  vvinit_tmp=0d0
-             allocate(vvinit(sectorJ%Dim))     ;  vvinit=0d0
-             !C_{b,up}|0>=|tmp>
-             do i=1,sectorI%Dim
-                call apply_op_C(i,k,sgn,jpos,jalfa,1,sectorI,sectorK)
-                if(sgn==0.OR.k==0)cycle
-                vvinit_tmp(k) = sgn*state_cvec(i)
-             enddo
-             !C^+_{a,dw}|tmp>=|vvinit>
-             do k=1,sectorK%Dim
-                call apply_op_CDG(k,i,sgn,ipos,ialfa,2,sectorK,sectorJ)
-                if(sgn==0.OR.k==0)cycle
-                vvinit(i) = sgn*vvinit_tmp(k)
-             enddo
-             deallocate(vvinit_tmp)
-             call delete_sector(sectorI)
-             call delete_sector(sectorK)
-             call delete_sector(sectorJ)
-          else
-             allocate(vvinit(1));vvinit=0.d0
+             if(MpiMaster)then
+                call build_sector(isector,sectorI)
+                call build_sector(ksector,sectorK)
+                call build_sector(jsector,sectorJ)
+                if(ed_verbose>=3)write(LOGfile,"(A,I6,20I4)")&
+                     'Apply C^+_{a,dw}C_{b,up}: :',isector,sectorI%Nups,sectorI%Ndws
+                allocate(vvinit_tmp(sectorK%Dim)) ;  vvinit_tmp=0d0
+                allocate(vvinit(sectorJ%Dim))     ;  vvinit=0d0
+                !C_{b,up}|0>=|tmp>
+                do i=1,sectorI%Dim
+                   call apply_op_C(i,k,sgn,jpos,jalfa,1,sectorI,sectorK)
+                   if(sgn==0.OR.k==0)cycle
+                   vvinit_tmp(k) = sgn*state_cvec(i)
+                enddo
+                !C^+_{a,dw}|tmp>=|vvinit>
+                do k=1,sectorK%Dim
+                   call apply_op_CDG(k,i,sgn,ipos,ialfa,2,sectorK,sectorJ)
+                   if(sgn==0.OR.k==0)cycle
+                   vvinit(i) = sgn*vvinit_tmp(k)
+                enddo
+                deallocate(vvinit_tmp)
+                call delete_sector(sectorI)
+                call delete_sector(sectorK)
+                call delete_sector(sectorJ)
+             else
+                allocate(vvinit(1));vvinit=0.d0
+             endif
+             !
+             call tridiag_Hv_sector(jsector,vvinit,alfa_,beta_,norm2)
+             call add_to_lanczos_exctChi(norm2,state_e,alfa_,beta_,iorb,jorb,1)
+             deallocate(alfa_,beta_)
+             if(allocated(vvinit))deallocate(vvinit)
           endif
-          !
-          call tridiag_Hv_sector(jsector,vvinit,alfa_,beta_,norm2)
-          call add_to_lanczos_exctChi(norm2,state_e,alfa_,beta_,iorb,jorb,1)
-          deallocate(alfa_,beta_)
-          if(allocated(vvinit))deallocate(vvinit)
-       endif
        endif
        !
        !C^+_{a,up}C_{b,dw}:
        ksector = getCsector(jalfa,2,isector)
        if(ksector/=0)then
-       jsector = getCDGsector(ialfa,1,ksector)
+          jsector = getCDGsector(ialfa,1,ksector)
           if(jsector/=0)then
-          if(MpiMaster)then
-             call build_sector(isector,sectorI)
-             call build_sector(ksector,sectorK)
-             call build_sector(jsector,sectorJ)
-             if(ed_verbose>=3)write(LOGfile,"(A,I6,20I4)")&
-                  'Apply C^+_{a,dw}C_{b,up}: :',isector,sectorI%Nups,sectorI%Ndws
-             allocate(vvinit_tmp(sectorK%Dim)) ;  vvinit_tmp=0d0
-             allocate(vvinit(sectorJ%Dim))     ;  vvinit=0d0
-             !C_{b,dw}|0>=|tmp>
-             do i=1,sectorI%Dim
-                call apply_op_C(i,k,sgn,jpos,jalfa,2,sectorI,sectorK)
-                if(sgn==0.OR.k==0)cycle
-                vvinit_tmp(k) = sgn*state_cvec(i)
-             enddo
-             !C^+_{a,up}|tmp>=|vvinit>
-             do k=1,sectorK%Dim
-                call apply_op_CDG(k,i,sgn,ipos,ialfa,1,sectorK,sectorJ)
-                if(sgn==0.OR.k==0)cycle
-                vvinit(i) = sgn*vvinit_tmp(k)
-             enddo
-             deallocate(vvinit_tmp)
-             call delete_sector(sectorI)
-             call delete_sector(sectorK)
-             call delete_sector(sectorJ)
-          else
-             allocate(vvinit(1));vvinit=0.d0
+             if(MpiMaster)then
+                call build_sector(isector,sectorI)
+                call build_sector(ksector,sectorK)
+                call build_sector(jsector,sectorJ)
+                if(ed_verbose>=3)write(LOGfile,"(A,I6,20I4)")&
+                     'Apply C^+_{a,dw}C_{b,up}: :',isector,sectorI%Nups,sectorI%Ndws
+                allocate(vvinit_tmp(sectorK%Dim)) ;  vvinit_tmp=0d0
+                allocate(vvinit(sectorJ%Dim))     ;  vvinit=0d0
+                !C_{b,dw}|0>=|tmp>
+                do i=1,sectorI%Dim
+                   call apply_op_C(i,k,sgn,jpos,jalfa,2,sectorI,sectorK)
+                   if(sgn==0.OR.k==0)cycle
+                   vvinit_tmp(k) = sgn*state_cvec(i)
+                enddo
+                !C^+_{a,up}|tmp>=|vvinit>
+                do k=1,sectorK%Dim
+                   call apply_op_CDG(k,i,sgn,ipos,ialfa,1,sectorK,sectorJ)
+                   if(sgn==0.OR.k==0)cycle
+                   vvinit(i) = sgn*vvinit_tmp(k)
+                enddo
+                deallocate(vvinit_tmp)
+                call delete_sector(sectorI)
+                call delete_sector(sectorK)
+                call delete_sector(sectorJ)
+             else
+                allocate(vvinit(1));vvinit=0.d0
+             endif
+             !
+             call tridiag_Hv_sector(jsector,vvinit,alfa_,beta_,norm2)
+             call add_to_lanczos_exctChi(norm2,state_e,alfa_,beta_,iorb,jorb,1)
+             deallocate(alfa_,beta_)
+             if(allocated(vvinit))deallocate(vvinit)
           endif
-          !
-          call tridiag_Hv_sector(jsector,vvinit,alfa_,beta_,norm2)
-          call add_to_lanczos_exctChi(norm2,state_e,alfa_,beta_,iorb,jorb,1)
-          deallocate(alfa_,beta_)
-          if(allocated(vvinit))deallocate(vvinit)
-       endif
        endif
        !
        !

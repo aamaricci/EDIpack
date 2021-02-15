@@ -34,10 +34,6 @@ MODULE LANC_ED
        ed_get_mag                             , &
        ed_get_docc                            , &
        ed_get_eimp                            , &
-       ed_get_epot                            , &
-       ed_get_eint                            , &
-       ed_get_ehartree                        , &
-       ed_get_eknot                           , &
        ed_get_doubles                         , &
        ed_get_density_matrix
 

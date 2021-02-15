@@ -3,7 +3,7 @@ module ED_MAIN
   USE SF_TIMER,only: start_timer,stop_timer
   USE ED_INPUT_VARS
   USE ED_VARS_GLOBAL
-  USE ED_EIGENSPACE, only: state_list,es_delete_espace,delete_eigenspace
+  USE ED_EIGENSPACE, only: state_list,es_delete_espace
   USE ED_AUX_FUNX
   USE ED_HLOC_DECOMPOSITION
   USE ED_SETUP
@@ -277,12 +277,7 @@ contains
     call local_energy_impurity()        !obtain the local energy of the effective impurity problem
     !
     call deallocate_dmft_bath(dmft_bath)
-    select case(ed_diag_type)
-    case default
-       call es_delete_espace(state_list)
-    case ("full")
-       call delete_eigenspace()
-    end select
+    call es_delete_espace(state_list)
     !
     nullify(spHtimesV_p)
   end subroutine ed_solve_single
@@ -424,7 +419,7 @@ contains
        Dreal_ph_ineq(ilat,:)       = impDreal_ph(:)
        dens_ineq(ilat,1:Norb)      = ed_dens(1:Norb)
        docc_ineq(ilat,1:Norb)      = ed_docc(1:Norb)
-       mag_ineq(ilat,:,1:Norb)     = ed_mag(:,1:Norb)
+       mag_ineq(ilat,1:Norb)       = ed_mag(1:Norb)
        e_ineq(ilat,:)              = [ed_Epot,ed_Eint,ed_Ehartree,ed_Eknot]
        dd_ineq(ilat,:)             = [ed_Dust,ed_Dund,ed_Dse,ed_Dph]
        imp_density_matrix_ineq(ilat,:,:,:,:) = imp_density_matrix(:,:,:,:)
@@ -460,7 +455,7 @@ contains
     complex(8)       :: Dreal_tmp(size(bath,1),Lreal)
     real(8)          :: dens_tmp(size(bath,1),Norb)
     real(8)          :: docc_tmp(size(bath,1),Norb)
-    real(8)          :: mag_tmp(size(bath,1),3,Norb)
+    real(8)          :: mag_tmp(size(bath,1),Norb)
     real(8)          :: e_tmp(size(bath,1),4)
     real(8)          :: dd_tmp(size(bath,1),4)
     !    
@@ -550,7 +545,7 @@ contains
           Dreal_tmp(ilat,:)          = impDreal_ph(:)
           dens_tmp(ilat,1:Norb)      = ed_dens(1:Norb)
           docc_tmp(ilat,1:Norb)      = ed_docc(1:Norb)
-          mag_tmp(ilat,:,1:Norb)     = ed_mag(:,1:Norb)
+          mag_tmp(ilat,1:Norb)       = ed_mag(1:Norb)
           e_tmp(ilat,:)              = [ed_Epot,ed_Eint,ed_Ehartree,ed_Eknot]
           dd_tmp(ilat,:)             = [ed_Dust,ed_Dund,ed_Dse,ed_Dph]
           imp_density_matrix_tmp(ilat,:,:,:,:) = imp_density_matrix(:,:,:,:)
@@ -605,7 +600,7 @@ contains
           Dreal_ph_ineq(ilat,:)       = impDreal_ph(:)
           dens_ineq(ilat,1:Norb)      = ed_dens(1:Norb)
           docc_ineq(ilat,1:Norb)      = ed_docc(1:Norb)
-          mag_ineq(ilat,:,1:Norb)     = ed_mag(:,1:Norb)
+          mag_ineq(ilat,1:Norb)       = ed_mag(1:Norb)
           e_ineq(ilat,:)              = [ed_Epot,ed_Eint,ed_Ehartree,ed_Eknot]
           dd_ineq(ilat,:)             = [ed_Dust,ed_Dund,ed_Dse,ed_Dph]
           imp_density_matrix_ineq(ilat,:,:,:,:) = imp_density_matrix(:,:,:,:)
@@ -641,7 +636,7 @@ contains
     !
     allocate(dens_ineq(Nineq,Norb))
     allocate(docc_ineq(Nineq,Norb))
-    allocate(mag_ineq(Nineq,3,Norb))
+    allocate(mag_ineq(Nineq,Norb))
     allocate(e_ineq(Nineq,4))
     allocate(dd_ineq(Nineq,4))
     !

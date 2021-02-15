@@ -195,7 +195,7 @@ MODULE ED_VARS_GLOBAL
   real(8),dimension(:),allocatable                   :: ed_dens
   real(8),dimension(:),allocatable                   :: ed_dens_up,ed_dens_dw
   real(8),dimension(:),allocatable                   :: ed_docc
-  real(8),dimension(:,:),allocatable                 :: ed_mag
+  real(8),dimension(:),allocatable                   :: ed_mag
   real(8)                                            :: ed_Ekin
   real(8)                                            :: ed_Epot
   real(8)                                            :: ed_Eint
@@ -217,19 +217,6 @@ MODULE ED_VARS_GLOBAL
 
 
 
-  !--------------- LATTICE WRAP VARIABLES -----------------!  
-  integer,allocatable,dimension(:,:)                 :: neigen_sectorii
-  integer,allocatable,dimension(:)                   :: neigen_totalii
-  complex(8),dimension(:,:,:,:,:,:),allocatable,save :: Smatsii,Srealii          ![Nlat][Nspin][Nspin][Norb][Norb][L]
-  complex(8),dimension(:,:,:,:,:,:),allocatable,save :: Gmatsii,Grealii          ![Nlat][Nspin][Nspin][Norb][Norb][L]
-  complex(8),dimension(:,:,:,:,:,:),allocatable,save :: G0matsii,G0realii          ![Nlat][Nspin][Nspin][Norb][Norb][L]
-  complex(8),dimension(:,:,:,:,:)  ,allocatable,save :: imp_density_matrix_ii    ![Nlat][Nspin][Nspin][Norb][Norb]
-  real(8),dimension(:,:),allocatable,save            ::  nii,dii,mii
-
-  real(8),dimension(:,:),allocatable,save            :: ddii,eii
-
-
-
   !--------------- LATTICE WRAP VARIABLES -----------------!
   complex(8),dimension(:,:,:,:,:,:),allocatable,save :: Smats_ineq,Sreal_ineq  ![Nlat,Nspin,Nspin,Norb,Norb,L]
   complex(8),dimension(:,:,:,:,:,:),allocatable,save :: Gmats_ineq,Greal_ineq
@@ -238,8 +225,7 @@ MODULE ED_VARS_GLOBAL
   complex(8),dimension(:,:,:,:,:),allocatable,save   :: imp_density_matrix_ineq
   real(8),dimension(:,:),allocatable,save            :: dens_ineq 
   real(8),dimension(:,:),allocatable,save            :: docc_ineq
-  real(8),dimension(:,:,:),allocatable,save          :: mag_ineq
-  real(8),dimension(:,:),allocatable,save            :: phisc_ineq
+  real(8),dimension(:,:),allocatable,save            :: mag_ineq
   real(8),dimension(:,:),allocatable,save            :: dd_ineq,e_ineq
   integer,allocatable,dimension(:,:)                 :: neigen_sector_ineq
   integer,allocatable,dimension(:)                   :: neigen_total_ineq

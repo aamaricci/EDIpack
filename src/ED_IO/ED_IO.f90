@@ -73,51 +73,12 @@ MODULE ED_IO
      module procedure :: ed_get_eimp_lattice
   end interface ed_get_eimp
 
-  interface ed_get_epot
-     module procedure :: ed_get_epot_main
-     module procedure :: ed_get_epot_lattice
-  end interface ed_get_epot
-
-  interface ed_get_eint
-     module procedure :: ed_get_eint_main
-     module procedure :: ed_get_eint_lattice
-  end interface ed_get_eint
-
-  interface ed_get_ehartree
-     module procedure :: ed_get_ehartree_main
-     module procedure :: ed_get_ehartree_lattice
-  end interface ed_get_ehartree
-
-  interface ed_get_eknot
-     module procedure :: ed_get_eknot_main
-     module procedure :: ed_get_eknot_lattice
-  end interface ed_get_eknot
-
   interface ed_get_doubles
      module procedure :: ed_get_doubles_main
      module procedure :: ed_get_doubles_lattice
   end interface ed_get_doubles
 
-  interface ed_get_dust
-     module procedure :: ed_get_dust_main
-     module procedure :: ed_get_dust_lattice
-  end interface ed_get_dust
-
-  interface ed_get_dund
-     module procedure :: ed_get_dund_main
-     module procedure :: ed_get_dund_lattice
-  end interface ed_get_dund
-
-  interface ed_get_dse
-     module procedure :: ed_get_dse_main
-     module procedure :: ed_get_dse_lattice
-  end interface ed_get_dse
-
-  interface ed_get_dph
-     module procedure :: ed_get_dph_main
-     module procedure :: ed_get_dph_lattice
-  end interface ed_get_dph
-
+  
   interface ed_get_density_matrix
      module procedure :: ed_get_density_matrix_single
      module procedure :: ed_get_density_matrix_lattice
@@ -136,18 +97,8 @@ MODULE ED_IO
   public :: ed_get_dens
   public :: ed_get_mag
   public :: ed_get_docc
-
   public :: ed_get_eimp
-  public :: ed_get_epot
-  public :: ed_get_eint 
-  public :: ed_get_ehartree
-  public :: ed_get_eknot
-
   public :: ed_get_doubles
-  public :: ed_get_dust
-  public :: ed_get_dund
-  public :: ed_get_dse
-  public :: ed_get_dph
 
   public :: ed_get_density_matrix
 
@@ -548,18 +499,18 @@ contains
     integer :: Nineq
     integer :: ilat
     !
-    if(allocated(Smatsii))deallocate(Smatsii)
-    if(allocated(Srealii))deallocate(Srealii)
-    allocate(Smatsii(Nineq,Nspin,Nspin,Norb,Norb,Lmats))
-    allocate(Srealii(Nineq,Nspin,Nspin,Norb,Norb,Lreal))
-    Smatsii  = zero 
-    Srealii  = zero 
+    if(allocated(Smats_ineq))deallocate(Smats_ineq)
+    if(allocated(Sreal_ineq))deallocate(Sreal_ineq)
+    allocate(Smats_ineq(Nineq,Nspin,Nspin,Norb,Norb,Lmats))
+    allocate(Sreal_ineq(Nineq,Nspin,Nspin,Norb,Norb,Lreal))
+    Smats_ineq  = zero 
+    Sreal_ineq  = zero 
     !
     do ilat=1,Nineq
        ed_file_suffix=reg(ineq_site_suffix)//str(ilat,site_indx_padding)
        call ed_read_impSigma_single
-       Smatsii(ilat,:,:,:,:,:)  = impSmats
-       Srealii(ilat,:,:,:,:,:)  = impSreal
+       Smats_ineq(ilat,:,:,:,:,:)  = impSmats
+       Sreal_ineq(ilat,:,:,:,:,:)  = impSreal
     enddo
     ed_file_suffix=""
   end subroutine ed_read_impSigma_lattice

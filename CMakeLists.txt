@@ -1,7 +1,7 @@
 ##################################################
 # DMFTED PROJECT
 ##################################################
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
+#CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
 PROJECT(lanc_ed Fortran)
 SET(VERSION 0.0.1)
 

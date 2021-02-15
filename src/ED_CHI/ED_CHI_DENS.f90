@@ -46,12 +46,7 @@ contains
     do iorb=1,Norb
        write(LOGfile,"(A)")"Get Chi_dens_l"//reg(txtfy(iorb))
        if(MPIMASTER)call start_timer()
-       select case(ed_diag_type)
-       case default
-          call lanc_ed_build_densChi_diag(iorb)
-       case ("full")
-          call full_ed_build_densChi_main(iorb,iorb)
-       end select
+       call lanc_ed_build_densChi_diag(iorb)
        if(MPIMASTER)call stop_timer(unit=LOGfile)
     enddo
     !
@@ -60,12 +55,7 @@ contains
           do jorb=iorb+1,Norb
              write(LOGfile,"(A)")"Get Chi_dens_mix_l"//reg(txtfy(iorb))//reg(txtfy(jorb))
              if(MPIMASTER)call start_timer()
-             select case(ed_diag_type)
-             case default
-                call lanc_ed_build_densChi_mix(iorb,jorb)
-             case ("full")
-                call full_ed_build_densChi_main(iorb,jorb)
-             end select
+             call lanc_ed_build_densChi_mix(iorb,jorb)
              if(MPIMASTER)call stop_timer(unit=LOGfile)
           end do
        end do
@@ -73,15 +63,10 @@ contains
        !
        do iorb=1,Norb
           do jorb=iorb+1,Norb
-             select case(ed_diag_type)
-             case default
-                densChi_w(iorb,jorb,:)   = 0.5d0*(densChi_w(iorb,jorb,:) - densChi_w(iorb,iorb,:) - densChi_w(jorb,jorb,:))
-                densChi_tau(iorb,jorb,:) = 0.5d0*(densChi_tau(iorb,jorb,:) - densChi_tau(iorb,iorb,:) - densChi_tau(jorb,jorb,:))
-                densChi_iv(iorb,jorb,:)  = 0.5d0*(densChi_iv(iorb,jorb,:) - densChi_iv(iorb,iorb,:) - densChi_iv(jorb,jorb,:))
-                !
-             case ("full")
-                ! The previous calculation is not needed in the FULL ED case
-             end select
+             densChi_w(iorb,jorb,:)   = 0.5d0*(densChi_w(iorb,jorb,:) - densChi_w(iorb,iorb,:) - densChi_w(jorb,jorb,:))
+             densChi_tau(iorb,jorb,:) = 0.5d0*(densChi_tau(iorb,jorb,:) - densChi_tau(iorb,iorb,:) - densChi_tau(jorb,jorb,:))
+             densChi_iv(iorb,jorb,:)  = 0.5d0*(densChi_iv(iorb,jorb,:) - densChi_iv(iorb,iorb,:) - densChi_iv(jorb,jorb,:))
+             !
              !
              densChi_w(jorb,iorb,:)   = densChi_w(iorb,jorb,:)
              densChi_tau(jorb,iorb,:) = densChi_tau(iorb,jorb,:)
@@ -96,11 +81,6 @@ contains
 
 
 
-
-  !################################################################
-  !################################################################
-  !################################################################
-  !################################################################
 
 
 
@@ -167,7 +147,6 @@ contains
 
 
 
-  !################################################################
 
 
 
@@ -240,7 +219,6 @@ contains
 
 
 
-  !################################################################
 
 
 
@@ -304,81 +282,6 @@ contains
 
 
 
-
-  !################################################################
-  !################################################################
-  !################################################################
-  !################################################################
-
-
-
-  subroutine full_ed_build_densChi_main(iorb,jorb)
-    integer                     :: iorb,jorb
-    type(sector)                :: sectorI,sectorJ
-    real(8)                     :: Chiorb,Chjorb,Niorb,Njorb
-    integer                     :: i,j,ll,m,isector
-    real(8)                     :: Ei,Ej,cc,peso,pesotot
-    real(8)                     :: expterm,de,w0,it
-    complex(8)                  :: iw 
-    !
-    !
-    !Dens susceptibility \X(tau).
-    !
-    if(ed_total_ud)then
-       ialfa = 1
-       jalfa = 1
-       ipos  = iorb
-       jpos  = jorb
-    else
-       ialfa = iorb
-       jalfa = jorb
-       ipos  = 1
-       jpos  = 1
-    endif
-    !
-    do isector=1,Nsectors !loop over <i| total particle number
-       call eta(isector,Nsectors,LOGfile)
-       call build_sector(isector,sectorI)
-       !
-       do i=1,sectorI%Dim 
-          do j=1,sectorI%Dim
-             Chiorb=0d0
-             Chjorb=0d0
-             expterm=exp(-beta*espace(isector)%e(i))+exp(-beta*espace(isector)%e(j))
-             if(expterm<cutoff)cycle
-             do ll=1,sectorI%Dim
-                call apply_op_N(i,Niorb,ipos,ialfa,sectorI)
-                Chiorb   = Chiorb + espace(isector)%M(ll,i)*Niorb*espace(isector)%M(ll,j)
-                call apply_op_N(i,Njorb,jpos,jalfa,sectorI)
-                Chjorb   = Chjorb + espace(isector)%M(ll,i)*Njorb*espace(isector)%M(ll,j)
-             enddo
-             Ei=espace(isector)%e(i)
-             Ej=espace(isector)%e(j)
-             de=Ei-Ej
-             peso = Chiorb*Chjorb/zeta_function
-             !
-             !Matsubara (bosonic) frequency
-             if(beta*dE > 1d-3)densChi_iv(iorb,jorb,0)=densChi_iv(iorb,jorb,0) + peso*2*exp(-beta*Ej)*(1d0-exp(-beta*dE))/dE
-             do m=1,Lmats
-                densChi_iv(iorb,jorb,m)=densChi_iv(iorb,jorb,m)+ peso*exp(-beta*Ej)*2*dE/(vm(m)**2 + de**2)
-             enddo
-             !
-             !Imaginary time: V
-             do m=0,Ltau 
-                it=tau(m)
-                densChi_tau(iorb,jorb,m)=densChi_tau(iorb,jorb,m) + exp(-it*Ei)*exp(-(beta-it)*Ej)*peso
-             enddo
-             !
-             !Real-frequency: Retarded = Commutator = response function
-             do m=1,Lreal
-                iw=dcmplx(vr(m),eps)
-                densChi_w(iorb,jorb,m)=densChi_w(iorb,jorb,m)-peso*(exp(-beta*Ei) - exp(-beta*Ej))/(iw+de)
-             enddo
-             !
-          enddo
-       enddo
-    enddo
-  end subroutine full_ed_build_densChi_main
 
 
 END MODULE ED_CHI_DENS

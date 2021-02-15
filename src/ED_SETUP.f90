@@ -44,17 +44,11 @@ contains
        if(mpiSIZE>1)stop "ED ERROR: lanc_method=Dvdson + MPIsize>1: not possible at the moment"       
     endif
     !
-    if(ed_diag_type=="full".AND.MpiStatus)then
-       if(mpiSIZE>1)stop "ED ERROR: ed_diag_type=FULL + MPIsize>1: not possible at the moment"
-    end if
-    !
-    if(ed_diag_type=="lanc")then
-       if(ed_finite_temp)then
-          if(lanc_nstates_total==1)stop "ED ERROR: ed_diag_type==lanc + ed_finite_temp=T *but* lanc_nstates_total==1 => T=0. Increase lanc_nstates_total"
-       else
-          if(lanc_nstates_total>1)print*, "ED WARNING: ed_diag_type==lanc + ed_finite_temp=F, T=0 *AND* lanc_nstates_total>1. re-Set lanc_nstates_total=1"
-          lanc_nstates_total=1
-       endif
+    if(ed_finite_temp)then
+       if(lanc_nstates_total==1)stop "ED ERROR: ed_finite_temp=T *but* lanc_nstates_total==1 => T=0. Increase lanc_nstates_total"
+    else
+       if(lanc_nstates_total>1)print*, "ED WARNING: ed_finite_temp=F, T=0 *AND* lanc_nstates_total>1. re-Set lanc_nstates_total=1"
+       lanc_nstates_total=1
     endif
     !
   end subroutine ed_checks_global
@@ -151,37 +145,23 @@ contains
     !
     finiteT = ed_finite_temp
     !
-    if(ed_diag_type=="lanc")then
-       if(finiteT)then
-          if(mod(lanc_nstates_sector,2)/=0)then
-             lanc_nstates_sector=lanc_nstates_sector+1
-             write(LOGfile,"(A,I10)")"Increased Lanc_nstates_sector:",lanc_nstates_sector
-          endif
-          if(mod(lanc_nstates_total,2)/=0)then
-             lanc_nstates_total=lanc_nstates_total+1
-             write(LOGfile,"(A,I10)")"Increased Lanc_nstates_total:",lanc_nstates_total
-          endif
-          write(LOGfile,"(A,I3)")"Nstates x Sector = ", lanc_nstates_sector
-          write(LOGfile,"(A,I3)")"Nstates   Total  = ", lanc_nstates_total
-          !
-          write(LOGfile,"(A)")"Lanczos FINITE temperature calculation:"
-          call sleep(1)
-       else
-          write(LOGfile,"(A)")"Lanczos ZERO temperature calculation:"
-          call sleep(1)
+    if(finiteT)then
+       if(mod(lanc_nstates_sector,2)/=0)then
+          lanc_nstates_sector=lanc_nstates_sector+1
+          write(LOGfile,"(A,I10)")"Increased Lanc_nstates_sector:",lanc_nstates_sector
        endif
+       if(mod(lanc_nstates_total,2)/=0)then
+          lanc_nstates_total=lanc_nstates_total+1
+          write(LOGfile,"(A,I10)")"Increased Lanc_nstates_total:",lanc_nstates_total
+       endif
+       write(LOGfile,"(A,I3)")"Nstates x Sector = ", lanc_nstates_sector
+       write(LOGfile,"(A,I3)")"Nstates   Total  = ", lanc_nstates_total
+       !
+       write(LOGfile,"(A)")"Lanczos FINITE temperature calculation:"
+       call sleep(1)
     else
-       if(finiteT)then
-          write(LOGfile,"(A)")"Full ED finite T calculation"
-          call sleep(1)
-       else
-          ed_diag_type='lanc'
-          lanc_nstates_total=1
-          lanc_dim_threshold=product(DimUps)*product(DimDws)*Dimph
-          write(LOGfile,"(A)")"Full ED T=0 calculation. Set LANC_DIM_THRESHOLD to "//str(lanc_dim_threshold)
-          if(lanc_dim_threshold>2**13)stop "Full ED T=0: LANC_DIM_THRESHOLD > 2**13=8192!"
-          call sleep(1)
-       endif
+       write(LOGfile,"(A)")"Lanczos ZERO temperature calculation:"
+       call sleep(1)
     endif
     !
     !

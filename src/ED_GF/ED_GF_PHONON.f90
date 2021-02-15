@@ -44,12 +44,7 @@ contains
   subroutine build_gf_phonon()
     write(LOGfile,"(A)")"Get phonon Green function:"
     if(MPIMASTER)call start_timer()
-    select case(ed_diag_type)
-    case default
-       call lanc_build_gf_phonon_main()
-    case ("full")
-       call full_build_gf_phonon_main()
-    end select
+    call lanc_build_gf_phonon_main()
     if(MPIMASTER)call stop_timer(unit=LOGfile)
     !
   end subroutine build_gf_phonon
@@ -184,74 +179,6 @@ contains
     enddo
   end subroutine add_to_lanczos_phonon
 
-
-  !################################################################
-  !################################################################
-  !################################################################
-  !################################################################
-
-
-  subroutine full_build_gf_phonon_main()
-    integer,dimension(Ns_Ud)    :: iDimUps,iDimDws
-    integer,dimension(2,Ns_Orb) :: Nud
-    integer                     :: Iud(2)
-    real(8)                     :: C1
-    integer                     :: i,j,ll,ll2,isector
-    integer                     :: idim
-    real(8)                     :: Ei,Ej,peso
-    real(8)                     :: expterm,de
-    complex(8)                  :: iw 
-    !
-    do isector=1,Nsectors !loop over <i| total particle number
-       call eta(isector,Nsectors,LOGfile)
-       idim = getdim(isector)
-       call get_DimUp(isector,iDimUps)
-       call get_DimDw(isector,iDimDws)
-       iDimUp = product(iDimUps)
-       iDimDw = product(iDimDws)
-       !
-       do i=1,idim 
-          do j=1,idim
-             C1=0d0
-             expterm=exp(-beta*espace(isector)%e(i))+exp(-beta*espace(isector)%e(j))
-             if(expterm<cutoff)cycle
-             do ll=1,idim
-                iph = (ll-1)/(iDimUp*iDimDw) + 1
-                i_el = mod(ll-1,iDimUp*iDimDw) + 1
-                !
-                !creation operator
-                if(iph<DimPh) then
-                   ll2 = i_el + ((iph+1)-1)*iDimUp*iDimDw
-                   C1 = C1 + espace(isector)%M(ll2,i)*sqrt(dble(iph))*espace(isector)%M(ll,j)
-                endif
-                !
-                !destruction operator
-                if(iph>1) then
-                   ll2 = i_el + ((iph-1)-1)*iDimUp*iDimDw
-                   C1 = C1 + espace(isector)%M(ll2,i)*sqrt(dble(iph-1))*espace(isector)%M(ll,j)
-                endif
-             enddo
-             Ei=espace(isector)%e(i)
-             Ej=espace(isector)%e(j)
-             de=Ei-Ej
-             peso = C1**2.d0/zeta_function
-             !
-             !Matsubara (bosonic) frequency
-             if(beta*dE > 1d-3)impDmats_ph(0)=impDmats_ph(0) - peso*2*exp(-beta*Ej)*(1d0-exp(-beta*dE))/dE
-             do m=1,Lmats
-                impDmats_ph(m)=impDmats_ph(m) - peso*exp(-beta*Ej)*2*dE/(vm(m)**2 + de**2)
-             enddo
-             !
-             !Real-frequency: Retarded = Commutator = response function
-             do m=1,Lreal
-                iw=dcmplx(vr(m),eps)
-                impDreal_ph(m)=impDreal_ph(m) + peso*(exp(-beta*Ei) - exp(-beta*Ej))/(iw+de)
-             enddo
-             !
-          enddo
-       enddo
-    enddo
-  end subroutine full_build_gf_phonon_main
 
 
 END MODULE ED_GF_PHONON

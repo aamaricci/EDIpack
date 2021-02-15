@@ -51,12 +51,7 @@ contains
        do iorb=1,Norb
           write(LOGfile,"(A)")"Get G_l"//str(iorb)//"_s"//str(ispin)
           if(MPIMASTER)call start_timer
-          select case(ed_diag_type)
-          case default
-             call lanc_build_gf_normal_diag(iorb,ispin)
-          case ("full")
-             call full_build_gf_normal_diag(iorb,ispin)
-          end select
+          call lanc_build_gf_normal_diag(iorb,ispin)
           if(MPIMASTER)call stop_timer(unit=LOGfile)
        enddo
     enddo
@@ -80,12 +75,7 @@ contains
                 !
                 write(LOGfile,"(A)")"Get G_l"//str(iorb)//"_m"//str(jorb)//"_s"//str(ispin)
                 if(MPIMASTER)call start_timer
-                select case(ed_diag_type)
-                case default
-                   call lanc_build_gf_normal_mix(iorb,jorb,ispin)
-                case ("full")
-                   call full_build_gf_normal_mix(iorb,jorb,ispin)
-                end select
+                call lanc_build_gf_normal_mix(iorb,jorb,ispin)
                 if(MPIMASTER)call stop_timer(unit=LOGfile)
              enddo
           enddo
@@ -93,31 +83,23 @@ contains
        !
        !
        !Put here off-diagonal manipulation by symmetry:
-       select case(ed_diag_type)
-       case default
-          do ispin=1,Nspin
-             do iorb=1,Norb
-                do jorb=iorb+1,Norb
-                   !if(hybrid)always T; if(replica)T iff following condition is T
-                   MaskBool=.true.   
-                   if(bath_type=="replica")MaskBool=Hmask(ispin,ispin,iorb,jorb)
-                   !
-                   if(.not.MaskBool)cycle
-                   impGmats(ispin,ispin,iorb,jorb,:) = 0.5d0*(impGmats(ispin,ispin,iorb,jorb,:) &
-                        - impGmats(ispin,ispin,iorb,iorb,:) - impGmats(ispin,ispin,jorb,jorb,:))
-                   impGreal(ispin,ispin,iorb,jorb,:) = 0.5d0*(impGreal(ispin,ispin,iorb,jorb,:) &
-                        - impGreal(ispin,ispin,iorb,iorb,:) - impGreal(ispin,ispin,jorb,jorb,:))
-                   impGmats(ispin,ispin,jorb,iorb,:) = impGmats(ispin,ispin,iorb,jorb,:)
-                   impGreal(ispin,ispin,jorb,iorb,:) = impGreal(ispin,ispin,iorb,jorb,:)
-                enddo
+       do ispin=1,Nspin
+          do iorb=1,Norb
+             do jorb=iorb+1,Norb
+                !if(hybrid)always T; if(replica)T iff following condition is T
+                MaskBool=.true.   
+                if(bath_type=="replica")MaskBool=Hmask(ispin,ispin,iorb,jorb)
+                !
+                if(.not.MaskBool)cycle
+                impGmats(ispin,ispin,iorb,jorb,:) = 0.5d0*(impGmats(ispin,ispin,iorb,jorb,:) &
+                     - impGmats(ispin,ispin,iorb,iorb,:) - impGmats(ispin,ispin,jorb,jorb,:))
+                impGreal(ispin,ispin,iorb,jorb,:) = 0.5d0*(impGreal(ispin,ispin,iorb,jorb,:) &
+                     - impGreal(ispin,ispin,iorb,iorb,:) - impGreal(ispin,ispin,jorb,jorb,:))
+                impGmats(ispin,ispin,jorb,iorb,:) = impGmats(ispin,ispin,iorb,jorb,:)
+                impGreal(ispin,ispin,jorb,iorb,:) = impGreal(ispin,ispin,iorb,jorb,:)
              enddo
           enddo
-       case ("full")
-          !>>ACTHUNG: this relation might not be true, it depends on the value of the impHloc_ij
-          ! if impHloc_ij is REAL then it is true. if CMPLX hermiticity must be ensured
-          impGmats(ispin,ispin,jorb,iorb,:) = impGmats(ispin,ispin,iorb,jorb,:)
-          impGreal(ispin,ispin,jorb,iorb,:) = impGreal(ispin,ispin,iorb,jorb,:)
-       end select
+       enddo
     end if
     !
   end subroutine build_gf_normal
@@ -421,178 +403,6 @@ contains
 
 
 
-
-
-  !############################################################################################
-  !############################################################################################
-  !############################################################################################
-  !############################################################################################
-  !############################################################################################
-  !############################################################################################
-
-
-
-
-
-  subroutine full_build_gf_normal_diag(iorb,ispin)
-    integer                     :: iorb,ispin
-    type(sector)                :: sectorI,sectorJ
-    real(8)                     :: op_mat(2)
-    real(8)                     :: spectral_weight
-    real(8)                     :: sgn_cdg,sgn_c
-    integer                     :: m,i,j,li,rj
-    real(8)                     :: Ei,Ej
-    real(8)                     :: expterm,peso,de,w0
-    complex(8)                  :: iw
-    !    
-    !
-    if(ed_total_ud)then
-       ialfa = 1
-       ipos  = iorb
-    else
-       ialfa = iorb
-       ipos  = 1
-    endif
-    !
-    do isector=1,Nsectors
-       jsector=getCDGsector(ialfa,ispin,isector)
-       if(jsector==0)cycle
-       !
-       call build_sector(isector,sectorI)
-       call build_sector(jsector,sectorJ)
-       !
-       do i=1,sectorI%Dim          !loop over the states in the i-th sect.
-          do j=1,sectorJ%Dim       !loop over the states in the j-th sect.
-             !
-             expterm=exp(-beta*espace(isector)%e(i))+exp(-beta*espace(jsector)%e(j))
-             if(expterm < cutoff)cycle
-             !
-             op_mat=0d0
-             !
-             do li=1,sectorI%Dim              !loop over the component of |I> (IN state!)
-                call apply_op_CDG(li,rj,sgn_cdg,ipos,ialfa,ispin,sectorI,sectorJ)
-                if(sgn_cdg==0d0.OR.rj==0)cycle
-                !
-                op_mat(1)=op_mat(1) + (espace(jsector)%M(rj,j))*sgn_cdg*espace(isector)%M(li,i)
-             enddo
-             !
-             do rj=1,sectorJ%Dim
-                call apply_op_C(rj,li,sgn_c,ipos,ialfa,ispin,sectorJ,sectorI)
-                if(sgn_c==0d0.OR.li==0)cycle
-                !
-                op_mat(2)=op_mat(2) + (espace(isector)%M(li,i))*sgn_c*espace(jsector)%M(rj,j)
-             enddo
-             !
-             Ei=espace(isector)%e(i)
-             Ej=espace(jsector)%e(j)
-             de=Ej-Ei
-             peso=expterm/zeta_function
-             spectral_weight=peso*product(op_mat)
-             !
-             do m=1,Lmats
-                iw=xi*wm(m)
-                impGmats(ispin,ispin,iorb,iorb,m)=impGmats(ispin,ispin,iorb,iorb,m)+spectral_weight/(iw-de)
-             enddo
-             !
-             do m=1,Lreal
-                w0=wr(m);iw=cmplx(w0,eps)
-                impGreal(ispin,ispin,iorb,iorb,m)=impGreal(ispin,ispin,iorb,iorb,m)+spectral_weight/(iw-de)
-             enddo
-             !
-          enddo
-       enddo
-       call delete_sector(sectorI)
-       call delete_sector(sectorJ)
-    enddo
-  end subroutine full_build_gf_normal_diag
-
-
-
-
-
-  subroutine full_build_gf_normal_mix(iorb,jorb,ispin)
-    integer                     :: iorb,jorb,ispin
-    type(sector)                :: sectorI,sectorJ
-    complex(8)                  :: op_mat(2)
-    complex(8)                  :: spectral_weight
-    real(8)                     :: sgn_cdg,sgn_c
-    integer                     :: m,i,j,li,rj
-    real(8)                     :: Ei,Ej
-    real(8)                     :: expterm,peso,de,w0
-    complex(8)                  :: iw
-    !
-    if(ed_total_ud)then
-       ialfa = 1
-       jalfa = ialfa               !this is the condition to evaluate G_ab: ialfa=jalfa
-       ipos  = iorb
-       jpos  = jorb
-    else
-       write(LOGfile,"(A)")"ED_GF_NORMAL warning: can not evaluate GF_ab with ed_total_ud=F"
-       return
-    endif
-    !
-    do isector=1,Nsectors
-       jsector=getCDGsector(ialfa,ispin,isector)
-       if(jsector==0)cycle
-       !
-       call build_sector(isector,sectorI)
-       call build_sector(jsector,sectorJ)
-       !
-       !
-       do i=1,sectorI%Dim          !loop over the states in the i-th sect.
-          do j=1,sectorJ%Dim       !loop over the states in the j-th sect.
-             !
-             expterm=exp(-beta*espace(isector)%e(i))+exp(-beta*espace(jsector)%e(j))
-             if(expterm < cutoff)cycle
-             !
-             op_mat=0d0
-             !
-             do li=1,sectorI%Dim              !loop over the component of |I> (IN state!)
-                call apply_op_CDG(li,rj,sgn_cdg,ipos,ialfa,ispin,sectorI,sectorJ)
-                if(sgn_cdg==0d0.OR.rj==0)cycle
-                !
-                op_mat(1)=op_mat(1) + (espace(jsector)%M(rj,j))*sgn_cdg*espace(isector)%M(li,i)
-             enddo
-             !
-             do rj=1,sectorJ%Dim
-                call apply_op_C(rj,li,sgn_c,jpos,jalfa,ispin,sectorJ,sectorI)
-                if(sgn_c==0d0.OR.li==0)cycle
-                !
-                op_mat(2)=op_mat(2) + (espace(isector)%M(li,i))*sgn_c*espace(jsector)%M(rj,j)
-             enddo
-             !
-             Ei=espace(isector)%e(i)
-             Ej=espace(jsector)%e(j)
-             de=Ej-Ei
-             peso=expterm/zeta_function
-             spectral_weight=peso*product(op_mat)
-             !
-             do m=1,Lmats
-                iw=xi*wm(m)
-                impGmats(ispin,ispin,iorb,jorb,m)=impGmats(ispin,ispin,iorb,jorb,m)+spectral_weight/(iw-de)
-             enddo
-             !
-             do m=1,Lreal
-                w0=wr(m);iw=cmplx(w0,eps)
-                impGreal(ispin,ispin,iorb,jorb,m)=impGreal(ispin,ispin,iorb,jorb,m)+spectral_weight/(iw-de)
-             enddo
-             !
-          enddo
-       enddo
-       call delete_sector(sectorI)
-       call delete_sector(sectorJ)
-    enddo
-  end subroutine full_build_gf_normal_mix
-
-
-
-
-  !############################################################################################
-  !############################################################################################
-  !############################################################################################
-  !############################################################################################
-  !############################################################################################
-  !############################################################################################
 
 
 

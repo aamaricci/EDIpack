@@ -74,7 +74,7 @@
     complex(8),allocatable                       :: dm_rot_tmp(:,:)
     complex(8),allocatable                       :: dm_custom_rot_tmp(:,:)
     !
-    Nlat=size(imp_density_matrix_ii,1)
+    Nlat=size(imp_density_matrix_ineq,1)
     !
     if (.not.allocated(imp_density_matrix)) then
        write(LOGfile,"(A)") "imp_density_matrix is not allocated"
@@ -94,7 +94,7 @@
     do ilat=1,Nlat
        !
        ! dm in the impurity problem basis
-       dm_(ilat,:,:) = nn2so_reshape(imp_density_matrix_ii(ilat,:,:,:,:),Nspin,Norb)
+       dm_(ilat,:,:) = nn2so_reshape(imp_density_matrix_ineq(ilat,:,:,:,:),Nspin,Norb)
        !
        if(bath_type=="replica")then
           !
@@ -110,7 +110,7 @@
        elseif(bath_type=="normal")then !.and.SOC/=0.d0
           !
           ! here I assume that custom_rot is: {J,jz}-->{t2g,Sz} / {Lz,Sz}
-          dm_custom_rot(ilat,:,:)=nn2so_reshape(imp_density_matrix_ii(ilat,:,:,:,:),Nspin,Norb)
+          dm_custom_rot(ilat,:,:)=nn2so_reshape(imp_density_matrix_ineq(ilat,:,:,:,:),Nspin,Norb)
           dm_(ilat,:,:)=matmul(custom_rot,matmul(dm_custom_rot(ilat,:,:),transpose(conjg(custom_rot))))
           !
           ! dm in her diagonal basis
