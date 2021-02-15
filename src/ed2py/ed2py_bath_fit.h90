@@ -1,0 +1,58 @@
+!USE ED_BATH_FIT:
+subroutine chi2_fitgf_site(func,bath,hloc,ispin,iorb)
+  USE LANC_ED, only: ed_chi2_fitgf, Nspin, Norb, Lmats
+  USE SCIFOR, only: assert_shape
+  USE SF_MPI
+  USE MPI
+  implicit none
+  real(8),dimension(:),intent(inout)         :: bath
+  complex(8),dimension(:,:,:,:,:),intent(in) :: func
+  real(8),dimension(:,:,:,:),intent(in)      :: hloc
+  integer,intent(in)                         :: ispin
+  integer,intent(in),optional                :: iorb   
+  call assert_shape(func,[Nspin,Nspin,Norb,Norb,Lmats],"chi2_fitgf","func")
+  call assert_shape(hloc,[Nspin,Nspin,Norb,Norb],"chi2_fitgf","hloc")
+  if(check_MPI())then
+     if(present(iorb))then
+        call ed_chi2_fitgf(MPI_COMM_WORLD,func,bath,hloc,ispin,iorb)
+     else
+        call ed_chi2_fitgf(MPI_COMM_WORLD,func,bath,hloc,ispin)
+     endif
+  else
+     if(present(iorb))then
+        call ed_chi2_fitgf(func,bath,hloc,ispin,iorb)
+     else
+        call ed_chi2_fitgf(func,bath,hloc,ispin)
+     endif
+  endif
+end subroutine chi2_fitgf_site
+
+subroutine chi2_fitgf_ineq(func,bath,hloc,ispin,iorb)
+  USE LANC_ED, only: ed_chi2_fitgf, Nspin, Norb, Lmats
+  USE SCIFOR, only: assert_shape
+  USE SF_MPI
+  USE MPI
+  implicit none
+  real(8),dimension(:,:),intent(inout)            :: bath
+  complex(8),dimension(:,:,:,:,:,:),intent(inout) :: func
+  real(8),dimension(:,:,:,:,:),intent(in)         :: hloc
+  integer,intent(in)                              :: ispin
+  integer,intent(in),optional                     :: iorb   
+  integer :: Nineq
+  Nineq = size(bath,1)
+  call assert_shape(func,[Nineq,Nspin,Nspin,Norb,Norb,Lmats],"chi2_fitgf","func")
+  call assert_shape(Hloc,[Nineq,Nspin,Nspin,Norb,Norb],"chi2_fitgf","hloc")
+  if(check_MPI())then
+     if(present(iorb))then
+        call ed_chi2_fitgf(MPI_COMM_WORLD,func,bath,hloc,ispin,iorb)
+     else
+        call ed_chi2_fitgf(MPI_COMM_WORLD,func,bath,hloc,ispin)
+     endif
+  else
+     if(present(iorb))then
+        call ed_chi2_fitgf(func,bath,hloc,ispin,iorb)
+     else
+        call ed_chi2_fitgf(func,bath,hloc,ispin)
+     endif
+  endif
+end subroutine chi2_fitgf_ineq
