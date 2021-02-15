@@ -2,7 +2,8 @@ MODULE ED_HLOC_DECOMPOSITION
   USE ED_INPUT_VARS
   USE ED_VARS_GLOBAL
   USE ED_AUX_FUNX
-  USE SF_IOTOOLS, only:free_unit,reg
+  USE SCIFOR, only:free_unit,reg
+  USE SCIFOR, only: assert_shape
   implicit none
   private
 

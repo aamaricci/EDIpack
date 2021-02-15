@@ -1,5 +1,9 @@
 # # DMFT_ED library
+#Generate version module:
+configure_file(${LIB_SRC}/revision.in ${LIB_SRC}/ED_VERSION.f90 @ONLY)
+
 FILE(GLOB ED_INIT_SRC
+  ED_VERSION.f90
   ED_SPARSE_MATRIX.f90
   ED_VARS_GLOBAL.f90
   ED_INPUT_VARS.f90
