@@ -28,7 +28,7 @@ ext1 = Extension(
 
 setup(
     name = "lancpy",
-    version = "0.0.6",
+    version = "0.0.7",
     description = "LANC ED python API",
     author = "Adriano Amaricci",
     author_email = "amaricci@sissa.it",

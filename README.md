@@ -4,44 +4,60 @@ A Lanczos based solver for generic quantum impurity models exploiting distribute
 
 ### Dependencies
 
-The code is written around the SciFortran library, which can be found here with installatio notes.   
+The code is written around the SciFortran library, which can be found here with installation notes.   
 
-* SciFortran [https://github.com/aamaricci/SciFortran](https://github.com/aamaricci/SciFortran)  
+* SciFortran https://github.com/QcmPlab/SciFortran
 
 ### Installation
 
-Installation is  available using CMake. In the current v0.0.1 API are only provided in Fortran.   
+Installation is  available using CMake.    
 
 Clone the repo:
 
-`git clone https://github.com/aamaricci/lib_dmft_ed scifor`
+`git clone https://github.com/QcmPlab/LANC_ED lanc_ed`
 
-And from the repository directory (`cd lib_dmft_ed`) make a standard out-of-source CMake compilation:
+and from the just created directory make a standard out-of-source CMake compilation:
 
-`mkdir build`
-`cd build`
+`mkdir build`  
+ `cd build`  
 `cmake ..`     
 `make`     
 `make install`   
-`make post-install`    
-
-Please follow the instructions on the screen to complete installation on your environment.  
-The library can be loaded using one of the following, automatically generated, files :  
-
-* pkg-config file in `~/.pkg-config.d/dmft_ed.pc`  
-* environment module file `~/.modules.d/dmft_ed/<PLAT>`  
-* homebrew `bash` script `<PREFIX>/bin/configvars.sh`
-
 
 The `CMake` compilation can be controlled using the following additional variables, default values between `< >`:   
 
-* `-DPREFIX=prefix directory <~/opt/dmft_ed/VERSION/PLAT/[GIT_BRANCH]>` 
-
+* `-DPREFIX=prefix directory <~/opt/lanc_ed/PLAT/[VERSION]>` 
 * `-DUSE_MPI=<yes>/no`  
-
 * `-DVERBOSE=yes/<no> `  
-
 * `-DBUILD_TYPE=<RELEASE>/TESTING/DEBUG`  
+
+### System loading: 
+
+The library can be loaded into the operative system using one of the following, automatically generated, methods:    
+
+* environment module file `~/.modules.d/dmft_ed/<PLAT>`  
+* homebrew `bash` script `<PREFIX>/bin/configvars.sh`
+* pkg-config file in `~/.pkg-config.d/dmft_ed.pc`
+
+### Python binding
+
+Python binding (API) through module `lancpy` can be  installed, once the library is successfully loaded in the OS, using the conventional toolchain:
+
+`export F90=mpif90` (required if library has been compiled and installed with MPI support)  
+
+1. `python setup.py install`
+2. `pip install .`
+
+Method 2. has the advantage of making `uninstall` operation feasible. 
+
+### Uninstall
+
+The library is removed with the command:
+
+`make uninstall`
+
+from the same building directory as for the installation part. 
+
 
 
 For any information contact the author as:  
