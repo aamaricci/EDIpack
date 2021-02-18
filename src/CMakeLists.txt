@@ -1,6 +1,6 @@
 # # DMFT_ED library
 #Generate version module:
-configure_file(${LIB_SRC}/revision.in ${LIB_SRC}/ED_VERSION.f90 @ONLY)
+CONFIGURE_FILE(${LIB_SRC}/revision.in ${LIB_SRC}/ED_VERSION.f90 @ONLY)
 
 FILE(GLOB ED_INIT_SRC
   ED_VERSION.f90

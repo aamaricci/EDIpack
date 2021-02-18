@@ -275,17 +275,17 @@ FILE(REMOVE_RECURSE ${LIB_TMP_ETC}/modules/)
 SET(TMP_MODULE_NAME "${FULL_VER}" CACHE PATH "Prefix prepended to install directories")
 SET(TMP_ENV_MODULE_FILE ${LIB_TMP_ETC}/modules/${PROJECT_NAME}/${TMP_MODULE_NAME})
 SET(TMP_VER_MODULE_FILE ${LIB_TMP_ETC}/modules/${PROJECT_NAME}/${FC_ID}/.version)
-configure_file(${LIB_ENV}/module.in ${TMP_ENV_MODULE_FILE} @ONLY)
-configure_file(${LIB_ENV}/version.in ${TMP_VER_MODULE_FILE} @ONLY)
+CONFIGURE_FILE(${LIB_ENV}/module.in ${TMP_ENV_MODULE_FILE} @ONLY)
+CONFIGURE_FILE(${LIB_ENV}/version.in ${TMP_VER_MODULE_FILE} @ONLY)
 
 #Build the PKG-CONFIG file
 SET(TMP_PKCONFIG_FILE ${LIB_TMP_ETC}/${PROJECT_NAME}.pc)
-configure_file( ${LIB_ETC}/${PROJECT_NAME}.pc.in ${TMP_PKCONFIG_FILE} @ONLY)
+CONFIGURE_FILE( ${LIB_ETC}/${PROJECT_NAME}.pc.in ${TMP_PKCONFIG_FILE} @ONLY)
 
 #Build the user config script (sourced in user shell config file, i.e. .bashrc)
 SET(CONFIG_SCRIPT lanc_ed_config.sh)
 SET(TMP_CONFIGVARS_FILE ${LIB_TMP_ETC}/${CONFIG_SCRIPT})
-configure_file(${LIB_ETC}/config_lanc_ed.sh.in ${TMP_CONFIGVARS_FILE} @ONLY)
+CONFIGURE_FILE(${LIB_ETC}/config_lanc_ed.sh.in ${TMP_CONFIGVARS_FILE} @ONLY)
 
 
 FILE(WRITE  ${LIB_TMP_VER}  "${VERSION}\n")
