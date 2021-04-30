@@ -35,9 +35,9 @@ The `CMake` compilation can be controlled using the following additional variabl
 
 The library can be loaded into the operative system using one of the following, automatically generated, methods:    
 
-* environment module file `~/.modules.d/dmft_ed/<PLAT>`  
+* environment module file `~/.modules.d/lanc_ed/<PLAT>`  
 * homebrew `bash` script `<PREFIX>/bin/configvars.sh`
-* pkg-config file in `~/.pkg-config.d/dmft_ed.pc`
+* pkg-config file in `~/.pkg-config.d/lanc_ed.pc`
 
 ### Python binding
 
