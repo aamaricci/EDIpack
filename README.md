@@ -6,7 +6,11 @@ A Lanczos based solver for generic quantum impurity models exploiting distribute
 
 The code is written around the SciFortran library, which can be found here with installation notes.   
 
-* SciFortran https://github.com/QcmPlab/SciFortran
+
+* gfortran > 4.9x **OR** ifort  > 13.0
+* cmake > 3.0.0    
+* [SciFortran](https://github.com/QcmPlab/SciFortran)
+* [MPI](https://github.com/open-mpi/ompi)
 
 ### Installation
 
@@ -66,7 +70,7 @@ adriano DOT amaricci @ gmail DOT com
 --
 
 ***COPYRIGHT & LICENSING***  
-Copyright  (c), Adriano Amaricci, Lorenzo Crippa, Alberto Scazzola, Luca de Medici, Massimo Capone.  
+Copyright  (c), Adriano Amaricci, Lorenzo Crippa, Alberto Scazzola, Giacomo Mazza, Luca de Medici, Massimo Capone.  
 All rights reserved. 
 
 The software is provided with no license, as such it is protected by copyright.
