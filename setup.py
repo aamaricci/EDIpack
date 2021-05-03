@@ -18,7 +18,7 @@ ED_include_dirs.extend(pkgconfig.parse('lanc_ed')['include_dirs'])
 
 ext1 = Extension(
     name='ed2py',
-    sources=['src/ED_INPUT_VARS.f90','src/ed2py/ed2py.f90'],
+    sources=['src/INPUT_VARS.f90','src/ed2py/ed2py.f90'],
     f2py_options=["--quiet"],
     libraries=ED_libraries,
     library_dirs=ED_library_dirs,
@@ -28,7 +28,7 @@ ext1 = Extension(
 
 setup(
     name = "lancpy",
-    version = "0.0.7",
+    version = "1.0.1",
     description = "LANC ED python API",
     author = "Adriano Amaricci",
     author_email = "amaricci@sissa.it",

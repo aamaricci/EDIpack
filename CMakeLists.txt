@@ -3,7 +3,7 @@
 ##################################################
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0.0)
 PROJECT(lanc_ed Fortran)
-SET(VERSION 0.0.1)
+SET(VERSION 1.0.1)
 
 # Define the library name
 SET(LANCEDLIB lanc_ed)
