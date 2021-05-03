@@ -3,7 +3,7 @@
 ##################################################
 CMAKE_MINIMUM_REQUIRED(VERSION 3.0.0)
 PROJECT(lanc_ed Fortran)
-SET(VERSION 0.0.1)
+SET(VERSION 1.0.1)
 
 # Define the library name
 SET(LANCEDLIB lanc_ed)
@@ -337,7 +337,7 @@ ${Yellow}Method 3: use pkg-config with the provided ${PROJECT_NAME}.pc${ColourRe
 
 # Add a distclean target to the Makefile
 ADD_CUSTOM_TARGET(distclean 
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/distclean.cmake
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_MODULE_PATH}/distclean.cmake
 )
 
 # Uninstall target
