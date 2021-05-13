@@ -3,10 +3,10 @@ exec_prefix=${prefix}/bin
 includedir=${prefix}/include
 libdir=${prefix}/lib
 
-Name: lanc_ed
-Description: The LANC_ED library
+Name: EDIpack
+Description: The EDIpack library
 Cflags: -I${includedir}
-Libs: -L${libdir} -llanc_ed
+Libs: -L${libdir} -ledipack
 Version:@VERSION@
 
 	

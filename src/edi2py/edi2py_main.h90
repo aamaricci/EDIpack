@@ -1,7 +1,7 @@
 
 !ED_MAIN:
 subroutine init_solver_site(bath,hloc)
-  USE LANC_ED, only: ed_init_solver,Norb,Nspin
+  USE EDIPACK, only: ed_init_solver,Norb,Nspin
   USE SCIFOR, only: assert_shape
   USE SF_MPI
   USE MPI
@@ -17,7 +17,7 @@ subroutine init_solver_site(bath,hloc)
 end subroutine init_solver_site
 !
 subroutine init_solver_ineq(bath,hloc)
-  USE LANC_ED, only: ed_init_solver,Nspin,Norb
+  USE EDIPACK, only: ed_init_solver,Nspin,Norb
   USE SCIFOR, only: assert_shape
   USE SF_MPI
   USE MPI
@@ -38,7 +38,7 @@ end subroutine init_solver_ineq
 
 
 subroutine solve_site(bath,hloc,sflag)
-  USE LANC_ED, only: ed_solve,Nspin,Norb
+  USE EDIPACK, only: ed_solve,Nspin,Norb
   USE SCIFOR, only: assert_shape
   USE SF_MPI
   USE MPI
@@ -55,7 +55,7 @@ subroutine solve_site(bath,hloc,sflag)
 end subroutine solve_site
 !
 subroutine solve_ineq(bath,hloc)
-  USE LANC_ED, only: ed_solve,Nspin,Norb
+  USE EDIPACK, only: ed_solve,Nspin,Norb
   USE SCIFOR, only: assert_shape
   USE SF_MPI
   USE MPI

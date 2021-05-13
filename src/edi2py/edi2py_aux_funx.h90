@@ -1,6 +1,6 @@
 !ED_AUX_FUNX:
 subroutine search_variable(var,ntmp,converged)
-  USE LANC_ED, only: ed_search_variable
+  USE EDIPACK, only: ed_search_variable
   implicit none
   real(8),intent(inout) :: var
   real(8),intent(in)    :: ntmp

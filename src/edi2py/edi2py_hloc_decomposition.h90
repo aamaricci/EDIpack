@@ -2,7 +2,7 @@
 ! ED_HLOC_DECOMPOSITION:
 ! these are "overloaded" in lanc_ed.py based on the shape of Hloc/Hvec
 subroutine set_hloc_nn(Hloc)
-  USE LANC_ED, only: ed_set_Hloc,Nspin,Norb
+  USE EDIPACK, only: ed_set_Hloc,Nspin,Norb
   USE SCIFOR, only: assert_shape
   implicit none
   real(8),dimension(:,:,:,:),intent(in) :: Hloc
@@ -11,7 +11,7 @@ subroutine set_hloc_nn(Hloc)
 end subroutine set_hloc_nn
 ! 
 subroutine set_hloc_so(Hloc)
-  USE LANC_ED, only: ed_set_Hloc,Nspin,Norb
+  USE EDIPACK, only: ed_set_Hloc,Nspin,Norb
   USE SCIFOR, only: assert_shape
   implicit none
   real(8),dimension(:,:),intent(in) :: Hloc
@@ -20,7 +20,7 @@ subroutine set_hloc_so(Hloc)
 end subroutine set_hloc_so
 ! 
 subroutine set_hloc_symm(Hvec,lambdavec)
-  USE LANC_ED, only: ed_set_Hloc,Nspin,Norb
+  USE EDIPACK, only: ed_set_Hloc,Nspin,Norb
   USE SCIFOR, only: assert_shape
   implicit none
   real(8),dimension(:,:,:,:,:),intent(in) :: Hvec

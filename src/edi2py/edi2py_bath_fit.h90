@@ -1,6 +1,6 @@
 !USE ED_BATH_FIT:
 subroutine chi2_fitgf_site(func,bath,hloc,ispin,iorb)
-  USE LANC_ED, only: ed_chi2_fitgf, Nspin, Norb, Lmats
+  USE EDIPACK, only: ed_chi2_fitgf, Nspin, Norb, Lmats
   USE SCIFOR, only: assert_shape
   USE SF_MPI
   USE MPI
@@ -28,7 +28,7 @@ subroutine chi2_fitgf_site(func,bath,hloc,ispin,iorb)
 end subroutine chi2_fitgf_site
 
 subroutine chi2_fitgf_ineq(func,bath,hloc,ispin,iorb)
-  USE LANC_ED, only: ed_chi2_fitgf, Nspin, Norb, Lmats
+  USE EDIPACK, only: ed_chi2_fitgf, Nspin, Norb, Lmats
   USE SCIFOR, only: assert_shape
   USE SF_MPI
   USE MPI

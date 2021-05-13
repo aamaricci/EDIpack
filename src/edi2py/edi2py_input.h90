@@ -1,6 +1,6 @@
 !ED_INPUT_VARS:
 subroutine read_input(INPUTunit)
-  USE LANC_ED, only: ed_read_input
+  USE EDIPACK, only: ed_read_input
   USE SF_MPI
   USE MPI
   implicit none

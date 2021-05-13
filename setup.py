@@ -18,7 +18,7 @@ ED_include_dirs.extend(pkgconfig.parse('edipack')['include_dirs'])
 
 ext1 = Extension(
     name='edi2py',
-    sources=['src/INPUT_VARS.f90','src/ed2py/edi2py.f90'],
+    sources=['src/INPUT_VARS.f90','src/edi2py/edi2py.f90'],
     f2py_options=["--quiet"],
     libraries=ED_libraries,
     library_dirs=ED_library_dirs,

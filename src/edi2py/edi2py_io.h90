@@ -1,6 +1,6 @@
 !ED_IO:
 subroutine get_sigma_matsubara_site(sigma)
-  USE LANC_ED, only: ed_get_sigma_matsubara,Nspin,Norb,Lmats
+  USE EDIPACK, only: ed_get_sigma_matsubara,Nspin,Norb,Lmats
   USE SCIFOR, only: assert_shape
   implicit none
   complex(8),dimension(:,:,:,:,:),intent(inout) :: sigma
@@ -9,7 +9,7 @@ subroutine get_sigma_matsubara_site(sigma)
 end subroutine get_sigma_matsubara_site
 !
 subroutine get_sigma_matsubara_ineq(sigma)
-  USE LANC_ED, only: ed_get_sigma_matsubara,Nspin,Norb,Lmats
+  USE EDIPACK, only: ed_get_sigma_matsubara,Nspin,Norb,Lmats
   USE SCIFOR, only: assert_shape
   implicit none
   complex(8),dimension(:,:,:,:,:,:),intent(inout) :: sigma
@@ -22,7 +22,7 @@ end subroutine get_sigma_matsubara_ineq
 
 
 subroutine get_sigma_realaxis_site(sigma)
-  USE LANC_ED, only: ed_get_sigma_realaxis,Nspin,Norb,Lreal
+  USE EDIPACK, only: ed_get_sigma_realaxis,Nspin,Norb,Lreal
   USE SCIFOR, only: assert_shape
   implicit none
   complex(8),dimension(:,:,:,:,:),intent(inout) :: sigma
@@ -31,7 +31,7 @@ subroutine get_sigma_realaxis_site(sigma)
 end subroutine get_sigma_realaxis_site
 !
 subroutine get_sigma_realaxis_ineq(sigma)
-  USE LANC_ED, only: ed_get_sigma_realaxis,Nspin,Norb,Lreal
+  USE EDIPACK, only: ed_get_sigma_realaxis,Nspin,Norb,Lreal
   USE SCIFOR, only: assert_shape
   implicit none
   complex(8),dimension(:,:,:,:,:,:),intent(inout) :: sigma
@@ -44,7 +44,7 @@ end subroutine get_sigma_realaxis_ineq
 
 
 subroutine get_gimp_matsubara_site(gimp)
-  USE LANC_ED, only: ed_get_gimp_matsubara,Nspin,Norb,Lmats
+  USE EDIPACK, only: ed_get_gimp_matsubara,Nspin,Norb,Lmats
   USE SCIFOR, only: assert_shape
   implicit none
   complex(8),dimension(:,:,:,:,:),intent(inout) :: gimp
@@ -53,7 +53,7 @@ subroutine get_gimp_matsubara_site(gimp)
 end subroutine get_gimp_matsubara_site
 !
 subroutine get_gimp_matsubara_ineq(gimp)
-  USE LANC_ED, only: ed_get_gimp_matsubara,Nspin,Norb,Lmats
+  USE EDIPACK, only: ed_get_gimp_matsubara,Nspin,Norb,Lmats
   USE SCIFOR, only: assert_shape
   implicit none
   complex(8),dimension(:,:,:,:,:,:),intent(inout) :: gimp
@@ -66,7 +66,7 @@ end subroutine get_gimp_matsubara_ineq
 
 
 subroutine get_gimp_realaxis_site(gimp)
-  USE LANC_ED, only: ed_get_gimp_realaxis,Nspin,Norb,Lreal
+  USE EDIPACK, only: ed_get_gimp_realaxis,Nspin,Norb,Lreal
   USE SCIFOR, only: assert_shape
   implicit none
   complex(8),dimension(:,:,:,:,:),intent(inout) :: gimp
@@ -75,7 +75,7 @@ subroutine get_gimp_realaxis_site(gimp)
 end subroutine get_gimp_realaxis_site
 !
 subroutine get_gimp_realaxis_ineq(gimp)
-  USE LANC_ED, only: ed_get_gimp_realaxis,Nspin,Norb,Lreal
+  USE EDIPACK, only: ed_get_gimp_realaxis,Nspin,Norb,Lreal
   USE SCIFOR, only: assert_shape
   implicit none
   complex(8),dimension(:,:,:,:,:,:),intent(inout) :: gimp
@@ -88,7 +88,7 @@ end subroutine get_gimp_realaxis_ineq
 
 
 subroutine get_delta_function(x,bath_,Delta)
-  USE LANC_ED, only: ed_get_delta_function,Nspin,Norb
+  USE EDIPACK, only: ed_get_delta_function,Nspin,Norb
   USE SCIFOR, only: assert_shape
   implicit none
   complex(8),dimension(:),intent(in)          :: x
@@ -100,7 +100,7 @@ end subroutine get_delta_function
 
 
 subroutine get_g0and_function(x,bath_,Delta)
-  USE LANC_ED, only: ed_get_g0and_function,Nspin,Norb
+  USE EDIPACK, only: ed_get_g0and_function,Nspin,Norb
   USE SCIFOR, only: assert_shape
   implicit none
   complex(8),dimension(:),intent(in)          :: x
@@ -114,7 +114,7 @@ end subroutine get_g0and_function
 
 
 subroutine get_dens_site(arg)
-  USE LANC_ED, only: ed_get_dens,Norb
+  USE EDIPACK, only: ed_get_dens,Norb
   implicit none
   real(8),dimension(:),intent(out) :: arg
   if(size(arg)/=Norb)stop "get_dens error: size(arg)!=Norb"
@@ -122,7 +122,7 @@ subroutine get_dens_site(arg)
 end subroutine get_dens_site
 !
 subroutine get_dens_ineq(arg,nlat)
-  USE LANC_ED, only: ed_get_dens,Norb
+  USE EDIPACK, only: ed_get_dens,Norb
   USE SCIFOR, only: assert_shape
   implicit none
   real(8),dimension(:,:),intent(out) :: arg
@@ -134,7 +134,7 @@ end subroutine get_dens_ineq
 
 
 subroutine get_mag_site(arg)
-  USE LANC_ED, only: ed_get_mag,Norb
+  USE EDIPACK, only: ed_get_mag,Norb
   implicit none
   real(8),dimension(:),intent(out) :: arg
   if(size(arg)/=Norb)stop "get_mag error: size(arg)!=Norb"
@@ -142,7 +142,7 @@ subroutine get_mag_site(arg)
 end subroutine get_mag_site
 !
 subroutine get_mag_ineq(arg,nlat)
-  USE LANC_ED, only: ed_get_mag,Norb
+  USE EDIPACK, only: ed_get_mag,Norb
   USE SCIFOR, only: assert_shape
   implicit none
   real(8),dimension(:,:),intent(out) :: arg
@@ -153,7 +153,7 @@ end subroutine get_mag_ineq
 
 
 subroutine get_docc_site(arg)
-  USE LANC_ED, only: ed_get_docc,Norb
+  USE EDIPACK, only: ed_get_docc,Norb
   implicit none
   real(8),dimension(:),intent(out) :: arg
   if(size(arg)/=Norb)stop "get_docc error: size(arg)!=Norb"
@@ -161,7 +161,7 @@ subroutine get_docc_site(arg)
 end subroutine get_docc_site
 !
 subroutine get_docc_ineq(arg,nlat)
-  USE LANC_ED, only: ed_get_docc,Norb
+  USE EDIPACK, only: ed_get_docc,Norb
   USE SCIFOR, only: assert_shape
   implicit none
   real(8),dimension(:,:),intent(out) :: arg
@@ -173,14 +173,14 @@ end subroutine get_docc_ineq
 
 
 subroutine get_eimp_site(arg)
-  USE LANC_ED, only: ed_get_eimp
+  USE EDIPACK, only: ed_get_eimp
   implicit none
   real(8),dimension(4),intent(out) :: arg
   call ed_get_eimp(arg)
 end subroutine get_eimp_site
 !
 subroutine get_eimp_ineq(arg,nlat)
-  USE LANC_ED, only: ed_get_eimp
+  USE EDIPACK, only: ed_get_eimp
   USE SCIFOR, only: assert_shape
   implicit none
   real(8),dimension(:,:),intent(out) :: arg
@@ -192,14 +192,14 @@ end subroutine get_eimp_ineq
 
 
 subroutine get_doubles_site(arg)
-  USE LANC_ED, only: ed_get_doubles
+  USE EDIPACK, only: ed_get_doubles
   implicit none
   real(8),dimension(4),intent(out) :: arg
   call ed_get_doubles(arg)
 end subroutine get_doubles_site
 !
 subroutine get_doubles_ineq(arg,nlat)
-  USE LANC_ED, only: ed_get_doubles
+  USE EDIPACK, only: ed_get_doubles
   USE SCIFOR, only: assert_shape
   implicit none
   real(8),dimension(:,:),intent(out) :: arg

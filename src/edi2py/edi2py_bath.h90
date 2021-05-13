@@ -1,14 +1,14 @@
 !ED_BATH:
 !"overload" direct/symmetries
 subroutine get_bath_dimension_direct(Nb)
-  USE LANC_ED, only: ed_get_bath_dimension
+  USE EDIPACK, only: ed_get_bath_dimension
   implicit none
   integer,intent(out)                      :: Nb
   Nb=ed_get_bath_dimension()
 end subroutine get_bath_dimension_direct
 !
 subroutine get_bath_dimension_symmetries(Nb,Hloc)
-  USE LANC_ED, only: ed_get_bath_dimension
+  USE EDIPACK, only: ed_get_bath_dimension
   implicit none
   complex(8),dimension(:,:,:,:,:),intent(in) :: Hloc    
   integer,intent(out)                        :: Nb
@@ -20,7 +20,7 @@ end subroutine get_bath_dimension_symmetries
 
 
 subroutine get_bath_component_dimension(type,ndim)
-  USE LANC_ED, only: ed_get_bath_component_dimension
+  USE EDIPACK, only: ed_get_bath_component_dimension
   implicit none
   character(len=1),intent(in) :: type
   integer,intent(out)         :: Ndim(3)
@@ -28,7 +28,7 @@ subroutine get_bath_component_dimension(type,ndim)
 end subroutine get_bath_component_dimension
 
 subroutine get_bath_component(array,bath_,type)
-  USE LANC_ED, only: ed_get_bath_component
+  USE EDIPACK, only: ed_get_bath_component
   implicit none
   real(8),dimension(:,:,:),intent(inout) :: array
   real(8),dimension(:),intent(in)        :: bath_
@@ -37,7 +37,7 @@ subroutine get_bath_component(array,bath_,type)
 end subroutine get_bath_component
 
 subroutine set_bath_component(array,bath_,type)
-  USE LANC_ED, only: ed_set_bath_component
+  USE EDIPACK, only: ed_set_bath_component
   implicit none
   real(8),dimension(:,:,:),intent(out)   :: array
   real(8),dimension(:),intent(in)        :: bath_
@@ -46,7 +46,7 @@ subroutine set_bath_component(array,bath_,type)
 end subroutine set_bath_component
 
 subroutine copy_bath_componen(bathIN,bathOUT,type)
-  USE LANC_ED, only: ed_copy_bath_component
+  USE EDIPACK, only: ed_copy_bath_component
   implicit none
   real(8),dimension(:),intent(inout) :: bathIN
   character(len=1),intent(in)        :: type
@@ -58,7 +58,7 @@ end subroutine copy_bath_componen
 
 !BREAK_SYMMETRY_BATH
 subroutine break_symmetry_bath_site(bath,field,sign,save)
-  USE LANC_ED, only: ed_break_symmetry_bath
+  USE EDIPACK, only: ed_break_symmetry_bath
   implicit none
   real(8),dimension(:),intent(inout) :: bath
   real(8),intent(in)                 :: field
@@ -68,7 +68,7 @@ subroutine break_symmetry_bath_site(bath,field,sign,save)
 end subroutine break_symmetry_bath_site
 !
 subroutine break_symmetry_bath_ineq(bath,field,sign,save)
-  USE LANC_ED, only: ed_break_symmetry_bath
+  USE EDIPACK, only: ed_break_symmetry_bath
   implicit none
   real(8),dimension(:,:),intent(inout) :: bath
   real(8),intent(in)                   :: field
@@ -81,7 +81,7 @@ end subroutine break_symmetry_bath_ineq
 
 !SPIN_SYMMETRIZE_BATH
 subroutine spin_symmetrize_bath_site(bath,save)
-  USE LANC_ED, only: ed_spin_symmetrize_bath
+  USE EDIPACK, only: ed_spin_symmetrize_bath
   implicit none
   real(8),dimension(:),intent(inout) :: bath
   logical,intent(in)                 :: save
@@ -89,7 +89,7 @@ subroutine spin_symmetrize_bath_site(bath,save)
 end subroutine spin_symmetrize_bath_site
 !
 subroutine spin_symmetrize_bath_ineq(bath,save)
-  USE LANC_ED, only: ed_spin_symmetrize_bath
+  USE EDIPACK, only: ed_spin_symmetrize_bath
   implicit none
   real(8),dimension(:,:),intent(inout) :: bath
   logical,intent(in)          :: save
@@ -100,7 +100,7 @@ end subroutine spin_symmetrize_bath_ineq
 
 !ORB_SYMMETRIZE_BATH
 subroutine orb_symmetrize_bath_site(bath,save)
-  USE LANC_ED, only: ed_orb_symmetrize_bath
+  USE EDIPACK, only: ed_orb_symmetrize_bath
   implicit none
   real(8),dimension(:),intent(inout) :: bath
   logical,intent(in)        :: save
@@ -108,7 +108,7 @@ subroutine orb_symmetrize_bath_site(bath,save)
 end subroutine orb_symmetrize_bath_site
 !
 subroutine orb_symmetrize_bath_ineq(bath,save)
-  USE LANC_ED, only: ed_orb_symmetrize_bath
+  USE EDIPACK, only: ed_orb_symmetrize_bath
   implicit none
   real(8),dimension(:,:),intent(inout) :: bath
   logical,intent(in)          :: save
@@ -119,7 +119,7 @@ end subroutine orb_symmetrize_bath_ineq
 
 !ORB_EQUALITY_BATH
 subroutine orb_equality_bath_site(bath,indx,save)
-  USE LANC_ED, only: ed_orb_equality_bath
+  USE EDIPACK, only: ed_orb_equality_bath
   implicit none
   real(8),dimension(:),intent(inout) :: bath
   integer,intent(in)                 :: indx
@@ -128,7 +128,7 @@ subroutine orb_equality_bath_site(bath,indx,save)
 end subroutine orb_equality_bath_site
 !
 subroutine orb_equality_bath_ineq(bath,indx,save)
-  USE LANC_ED, only: ed_orb_equality_bath
+  USE EDIPACK, only: ed_orb_equality_bath
   implicit none
   real(8),dimension(:,:),intent(inout) :: bath
   integer,intent(in)                   :: indx
@@ -142,7 +142,7 @@ end subroutine orb_equality_bath_ineq
 
 !PH_SYMMETRIZE_BATH
 subroutine ph_symmetrize_bath_site(bath,save)
-  USE LANC_ED, only: ed_ph_symmetrize_bath
+  USE EDIPACK, only: ed_ph_symmetrize_bath
   implicit none
   real(8),dimension(:),intent(inout) :: bath
   logical,intent(in)        :: save
@@ -150,7 +150,7 @@ subroutine ph_symmetrize_bath_site(bath,save)
 end subroutine ph_symmetrize_bath_site
 !
 subroutine ph_symmetrize_bath_ineq(bath,save)
-  USE LANC_ED, only: ed_ph_symmetrize_bath
+  USE EDIPACK, only: ed_ph_symmetrize_bath
   implicit none
   real(8),dimension(:,:),intent(inout) :: bath
   logical,intent(in)                   :: save
@@ -161,7 +161,7 @@ end subroutine ph_symmetrize_bath_ineq
 
 !PH_TRANS_BATH
 subroutine ph_trans_bath_site(bath,save)
-  USE LANC_ED, only: ed_ph_trans_bath
+  USE EDIPACK, only: ed_ph_trans_bath
   implicit none
   real(8),dimension(:),intent(inout) :: bath
   logical,intent(in)        :: save
@@ -169,7 +169,7 @@ subroutine ph_trans_bath_site(bath,save)
 end subroutine ph_trans_bath_site
 !
 subroutine ph_trans_bath_ineq(bath,save)
-  USE LANC_ED, only: ed_ph_trans_bath
+  USE EDIPACK, only: ed_ph_trans_bath
   implicit none
   real(8),dimension(:),intent(inout) :: bath
   logical,intent(in)        :: save
