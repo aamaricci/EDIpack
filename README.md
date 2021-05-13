@@ -18,7 +18,7 @@ Installation is  available using CMake.
 
 Clone the repo:
 
-`git clone https://github.com/QcmPlab/LANC_ED lanc_ed`
+`git clone https://github.com/QcmPlab/EDiTpack EDiTpack`
 
 and from the just created directory make a standard out-of-source CMake compilation:
 
@@ -30,7 +30,7 @@ and from the just created directory make a standard out-of-source CMake compilat
 
 The `CMake` compilation can be controlled using the following additional variables, default values between `< >`:   
 
-* `-DPREFIX=prefix directory <~/opt/lanc_ed/PLAT/[VERSION]>` 
+* `-DPREFIX=prefix directory <~/opt/editpack/PLAT/[VERSION]>` 
 * `-DUSE_MPI=<yes>/no`  
 * `-DVERBOSE=yes/<no> `  
 * `-DBUILD_TYPE=<RELEASE>/TESTING/DEBUG`  
@@ -39,13 +39,13 @@ The `CMake` compilation can be controlled using the following additional variabl
 
 The library can be loaded into the operative system using one of the following, automatically generated, methods:    
 
-* environment module file `~/.modules.d/lanc_ed/<PLAT>`  
+* environment module file `~/.modules.d/editpack/<PLAT>`  
 * homebrew `bash` script `<PREFIX>/bin/configvars.sh`
-* pkg-config file in `~/.pkg-config.d/lanc_ed.pc`
+* pkg-config file in `~/.pkg-config.d/editpack.pc`
 
 ### Python binding
 
-Python binding (API) through module `lancpy` can be  installed, once the library is successfully loaded in the OS, using the conventional toolchain:
+Python binding (API) through module `edpy` can be  installed, once the library is successfully loaded in the OS, using the conventional toolchain:
 
 `export F90=mpif90` (required if library has been compiled and installed with MPI support)  
 

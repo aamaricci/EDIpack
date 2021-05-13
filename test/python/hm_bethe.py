@@ -1,7 +1,7 @@
 import numpy as np
 import scipy as sp
-from lancpy import *
-import lancpy as ed
+from edipy import *
+import edipy as ed
 
 
 

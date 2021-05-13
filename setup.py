@@ -12,13 +12,13 @@ ED_libraries.extend(pkgconfig.parse('mpi')['libraries'])
 ED_library_dirs.extend(pkgconfig.parse('mpi')['library_dirs'])
 ED_include_dirs.extend(pkgconfig.parse('mpi')['include_dirs'])
 
-ED_libraries.extend(pkgconfig.parse('lanc_ed')['libraries'])
-ED_library_dirs.extend(pkgconfig.parse('lanc_ed')['library_dirs'])
-ED_include_dirs.extend(pkgconfig.parse('lanc_ed')['include_dirs'])
+ED_libraries.extend(pkgconfig.parse('edipack')['libraries'])
+ED_library_dirs.extend(pkgconfig.parse('edipack')['library_dirs'])
+ED_include_dirs.extend(pkgconfig.parse('edipack')['include_dirs'])
 
 ext1 = Extension(
-    name='ed2py',
-    sources=['src/INPUT_VARS.f90','src/ed2py/ed2py.f90'],
+    name='edi2py',
+    sources=['src/INPUT_VARS.f90','src/ed2py/edi2py.f90'],
     f2py_options=["--quiet"],
     libraries=ED_libraries,
     library_dirs=ED_library_dirs,
@@ -27,12 +27,12 @@ ext1 = Extension(
 
 
 setup(
-    name = "lancpy",
+    name = "edipy",
     version = "1.0.1",
-    description = "LANC ED python API",
+    description = "EDIpack python API",
     author = "Adriano Amaricci",
     author_email = "amaricci@sissa.it",
-    url='https://github.com/QcmPlab/LANC_ED',
+    url='https://github.com/QcmPlab/EDIpack',
     package_dir={"": "python"},
     packages=find_packages(where="python"),
     ext_modules=[ext1])

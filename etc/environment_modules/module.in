@@ -6,15 +6,15 @@ set version "(@FULL_VER@)"
 set compiler @CMAKE_Fortran_COMPILER@
   
 proc ModulesHelp { } {
-        puts stderr "\tThis module provides access to LANC_ED library\n";
+        puts stderr "\tThis module provides access to EDIpack library\n";
 	puts stderr "\tVersion $version\n"
 	puts stderr "\t compiled with $compiler\n"	
 }
 
-module-whatis "LANC_ED library in Fortran"
+module-whatis "EDIpack Fortran library"
 
 
-setenv       LANC_ED_ROOT  		 $root
+setenv       EDIPACK_ROOT  		 $root
 setenv	     FC			 $compiler
 setenv	     F90		 $compiler
 prepend-path LD_LIBRARY_PATH    "$root/lib"
@@ -22,5 +22,5 @@ prepend-path LIBRARY_PATH       "$root/lib"
 prepend-path PATH		"$root/bin"
 prepend-path PKG_CONFIG_PATH	"$root/etc"
 
-puts stderr " > (un)load LANC_ED $version"
+puts stderr " > (un)load EDIpack $version"
 #EOF

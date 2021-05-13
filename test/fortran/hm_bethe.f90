@@ -1,5 +1,5 @@
 program hm_bethe
-  USE LANC_ED
+  USE EDIPACK
   USE SCIFOR
   USE MPI
   implicit none
@@ -197,7 +197,7 @@ contains
   end function check_convergence
 
 
-end program
+end program hm_bethe
 
   
 

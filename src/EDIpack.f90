@@ -1,4 +1,4 @@
-MODULE LANC_ED
+MODULE EDIPACK
   USE ED_INPUT_VARS, only: ed_read_input                             ,&
        Norb,Nspin,Nloop,Nph,Uloc,Ust,Jh,Jx,Jp,xmu,beta,g_ph,w0_ph,eps,&
        wini,wfin,xmin,xmax,Nsuccess,dmft_error,sb_field,cg_Scheme    ,&
@@ -44,5 +44,5 @@ MODULE LANC_ED
        ed_solve
 
 
-END MODULE LANC_ED
+END MODULE EDIPACK
 

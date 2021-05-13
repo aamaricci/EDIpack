@@ -1,7 +1,0 @@
-  include "ed2py_aux_funx.h90"
-  include "ed2py_bath.h90"
-  include "ed2py_bath_fit.h90"
-  include "ed2py_hloc_decomposition.h90"
-  include "ed2py_input.h90"
-  include "ed2py_io.h90"
-  include "ed2py_main.h90"
