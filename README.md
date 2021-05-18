@@ -1,6 +1,7 @@
 # EDIpack: A *parallel* Exact Diagonalization solver for Quantum Impurity problems
 
 A Lanczos based solver for generic quantum impurity models exploiting distributed memory MPI parallelisation. This software focuses on the *normal* case (as opposed to superconducting or spin non-conserving cases) including long range magnetic ordering and arbitrary unit cells. 
+See [arxiv.org/2105.06806](https://arxiv.org/abs/2105.06806). 
 
 ### Dependencies
 
@@ -73,23 +74,22 @@ adriano DOT amaricci @ gmail DOT com
 Copyright  (c), Adriano Amaricci, Lorenzo Crippa, Alberto Scazzola, Giacomo Mazza, Luca de Medici, Massimo Capone.  
 All rights reserved. 
 
-The software is provided with no license, as such it is protected by copyright.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 The software is provided as it is and can be read and copied, in agreement with 
-the Terms of Service of GITHUB. Use of the code is constrained to author agreement.   
-
-<!--This program is free software: you can redistribute it and/or modify-->
-<!--it under the terms of the GNU General Public License as published by-->
-<!--the Free Software Foundation, either version 3 of the License, or-->
-<!--(at your option) any later version.-->
-
-<!--You should have received a copy of the GNU General Public License-->
-<!--along with this program.  If not, see <http://www.gnu.org/licenses/>.-->
+the Terms of Service of GITHUB. 
+Using this code please consider to cite the corresponding article [arxiv.org/2105.06806](https://arxiv.org/abs/2105.06806)
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
-
 
 --
 
