@@ -5,13 +5,13 @@ See [arxiv.org/2105.06806](https://arxiv.org/abs/2105.06806).
 
 ### Dependencies
 
-The code is written around the SciFortran library, which can be found here with installation notes.   
+The code is written around the SciFortran library. Dependencies are:   
 
-
-* gfortran > 4.9x **OR** ifort  > 13.0
+* gfortran > 9.0.0 **OR** ifort  > 13.0
 * cmake > 3.0.0    
-* [SciFortran](https://github.com/QcmPlab/SciFortran)
 * [MPI](https://github.com/open-mpi/ompi)
+* [SciFortran](https://github.com/QcmPlab/SciFortran)
+
 
 ### Installation
 
