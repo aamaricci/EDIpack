@@ -4,17 +4,17 @@ from numpy.distutils.core import setup
 from numpy.distutils.extension import Extension
 import sys
 
-ED_libraries=pkgconfig.parse('scifor')['libraries']
-ED_library_dirs=pkgconfig.parse('scifor')['library_dirs']
-ED_include_dirs=pkgconfig.parse('scifor')['include_dirs']
-
-ED_libraries.extend(pkgconfig.parse('mpi')['libraries'])
-ED_library_dirs.extend(pkgconfig.parse('mpi')['library_dirs'])
-ED_include_dirs.extend(pkgconfig.parse('mpi')['include_dirs'])
+ED_libraries=pkgconfig.parse('mpi')['libraries']
+ED_library_dirs=pkgconfig.parse('mpi')['library_dirs']
+ED_include_dirs=pkgconfig.parse('mpi')['include_dirs']
 
 ED_libraries.extend(pkgconfig.parse('edipack')['libraries'])
 ED_library_dirs.extend(pkgconfig.parse('edipack')['library_dirs'])
 ED_include_dirs.extend(pkgconfig.parse('edipack')['include_dirs'])
+
+ED_libraries.extend(pkgconfig.parse('scifor')['libraries'])
+ED_library_dirs.extend(pkgconfig.parse('scifor')['library_dirs'])
+ED_include_dirs.extend(pkgconfig.parse('scifor')['include_dirs'])
 
 ext1 = Extension(
     name='edi2py',
@@ -28,7 +28,7 @@ ext1 = Extension(
 
 setup(
     name = "edipy",
-    version = "1.0.6",
+    version = "1.0.7",
     description = "EDIpack python API",
     author = "Adriano Amaricci",
     author_email = "amaricci@sissa.it",
