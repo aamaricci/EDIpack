@@ -23,7 +23,7 @@ ext1 = Extension(
     libraries=ED_libraries,
     library_dirs=ED_library_dirs,
     include_dirs=ED_include_dirs,
-    extra_f90_compile_args=["-O2", "-ffree-line-length-none","-cpp","-D_MPI"])
+    extra_f90_compile_args=["-O2", "-fPIC", "-ffree-line-length-none","-cpp","-D_MPI"])
 
 
 setup(
