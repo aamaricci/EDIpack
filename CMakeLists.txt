@@ -136,7 +136,7 @@ INCLUDE_DIRECTORIES(BEFORE ${SCIFOR_INCLUDE_DIRS})
 ############################################################
 if(CMAKE_Fortran_COMPILER_ID MATCHES GNU) # this is gfortran
   SET(CMAKE_Fortran_MODDIR_FLAG   "-J")
-  SET(CMAKE_Fortran_FLAGS         "-cpp -ffree-line-length-none -w ") #  -fallow-argument-mismatch -mcmodel=large  this is to remove the 2Gb limit of virtual memory allocation
+  SET(CMAKE_Fortran_FLAGS         "-cpp -ffree-line-length-none -w -fPIC") #  -fallow-argument-mismatch -mcmodel=large  this is to remove the 2Gb limit of virtual memory allocation
   SET(CMAKE_Fortran_FLAGS_TESTING "-O2 -funroll-loops")
   SET(CMAKE_Fortran_FLAGS_DEBUG   "-O0 -p -g -Wsurprising -Waliasing -fwhole-file -fcheck=all -pedantic -fbacktrace -fbounds-check")
   SET(CMAKE_Fortran_FLAGS_RELEASE "-O3  -funroll-loops")  ##-fno-protect-parens -flto -ffast-math -march=native
