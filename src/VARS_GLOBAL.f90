@@ -274,7 +274,7 @@ MODULE ED_VARS_GLOBAL
   !Impurity operators
   !PRIVATE (now public but accessible thru routine)
   !=========================================================
-  complex(8),allocatable,dimension(:,:,:,:)          :: imp_density_matrix
+  ! complex(8),allocatable,dimension(:,:,:,:)          :: imp_density_matrix
 
 
 
@@ -283,7 +283,7 @@ MODULE ED_VARS_GLOBAL
   complex(8),dimension(:,:,:,:,:,:),allocatable,save :: Gmats_ineq,Greal_ineq
   complex(8),dimension(:,:,:,:,:,:),allocatable,save :: G0mats_ineq,G0real_ineq
   complex(8),dimension(:,:),allocatable,save         :: Dmats_ph_ineq,Dreal_ph_ineq
-  complex(8),dimension(:,:,:,:,:),allocatable,save   :: imp_density_matrix_ineq
+  ! complex(8),dimension(:,:,:,:,:),allocatable,save   :: imp_density_matrix_ineq
   real(8),dimension(:,:),allocatable,save            :: dens_ineq 
   real(8),dimension(:,:),allocatable,save            :: docc_ineq
   real(8),dimension(:,:),allocatable,save            :: mag_ineq

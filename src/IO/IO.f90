@@ -79,11 +79,6 @@ MODULE ED_IO
   end interface ed_get_doubles
 
   
-  interface ed_get_density_matrix
-     module procedure :: ed_get_density_matrix_single
-     module procedure :: ed_get_density_matrix_lattice
-  end interface ed_get_density_matrix
-
   public :: ed_get_sigma_matsubara
   public :: ed_get_sigma_realaxis
 
@@ -99,8 +94,6 @@ MODULE ED_IO
   public :: ed_get_docc
   public :: ed_get_eimp
   public :: ed_get_doubles
-
-  public :: ed_get_density_matrix
 
   public :: ed_read_impSigma_single
   public :: ed_read_impSigma_lattice
@@ -149,7 +142,7 @@ contains
   ! PURPOSE: Retrieve measured values of the local observables
   !+--------------------------------------------------------------------------+!
   include "get_obs.f90"
-  include "get_imp_dm.f90"
+  ! include "get_imp_dm.f90"
 
 
 
