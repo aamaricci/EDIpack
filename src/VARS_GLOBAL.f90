@@ -77,6 +77,64 @@ MODULE ED_VARS_GLOBAL
 
 
 
+  !-------------- GMATRIX FOR FAST EVALUATION OF GF ------------------!
+  !The contributions to the GF Kallen-Lehmann sum are stored as
+  !GF_{ab,sr}%state%channel%{w,e}.
+  !A couple of weight,poles {w,e} is stored for each *channel, corresponding to c,cdg or any
+  !their combination thereof as well as for any state |n> of the spectrum such that
+  !GF(z) = sum w/z-e
+  type GFspectrum
+     real(8),dimension(:),allocatable       :: weight
+     real(8),dimension(:),allocatable       :: poles
+  end type GFspectrum
+
+  !N_channel = c,cdag,c \pm cdag, c \pm i*cdag, ...
+  type GFchannel
+     type(GFspectrum),dimension(:),allocatable :: channel 
+  end type GFchannel
+
+  !state_list%size = # of state in the spectrum 
+  type GFmatrix
+     type(GFchannel),dimension(:),allocatable  :: state
+     logical                                   :: status=.false.
+  end type GFmatrix
+
+
+  ! interface allocate_GFmatrix
+  !    module procedure :: allocate_GFmatrix_Nstate
+  !    module procedure :: allocate_GFmatrix_Nchan
+  !    module procedure :: allocate_GFmatrix_Nexc
+  ! end interface allocate_GFmatrix
+
+
+  ! interface deallocate_GFmatrix
+  !    module procedure :: deallocate_GFmatrix_single
+  !    module procedure :: deallocate_GFmatrix_all1
+  !    module procedure :: deallocate_GFmatrix_all2
+  !    module procedure :: deallocate_GFmatrix_all3
+  !    module procedure :: deallocate_GFmatrix_all4
+  ! end interface deallocate_GFmatrix
+
+  ! interface write_GFmatrix
+  !    module procedure :: write_GFmatrix_single
+  !    module procedure :: write_GFmatrix_all1
+  !    module procedure :: write_GFmatrix_all2
+  !    module procedure :: write_GFmatrix_all3
+  !    module procedure :: write_GFmatrix_all4
+  ! end interface write_GFmatrix
+
+  ! interface read_GFmatrix
+  !    module procedure :: read_GFmatrix_single
+  !    module procedure :: read_GFmatrix_all1
+  !    module procedure :: read_GFmatrix_all2
+  !    module procedure :: read_GFmatrix_all3
+  !    module procedure :: read_GFmatrix_all4
+  ! end interface read_GFmatrix
+
+
+
+
+
   !------------------ ABTRACT INTERFACES PROCEDURES ------------------!
   !SPARSE MATRIX-VECTOR PRODUCTS USED IN ED_MATVEC
   !dbleMat*dbleVec
@@ -114,15 +172,18 @@ MODULE ED_VARS_GLOBAL
   logical,allocatable,dimension(:)                   :: sectors_mask
 
   !Effective Bath used in the ED code (this is opaque to user)
-  !PRIVATE
   !=========================================================
   type(effective_bath)                               :: dmft_bath
-  type(H_operator),dimension(:),allocatable          :: H_basis
-  real(8),dimension(:),allocatable                   :: lambda_impHloc
-  real(8),dimension(:,:,:,:),allocatable             :: impHloc           !local hamiltonian
 
+  !Replica bath basis set
+  !=========================================================
+  type(H_operator),dimension(:),allocatable          :: Hreplica_basis
+  real(8),dimension(:),allocatable                   :: Hreplica_lambda
+  logical                                            :: Hreplica_status=.false.
 
-
+  !local part of the Hamiltonian
+  !=========================================================
+  complex(8),dimension(:,:,:,:),allocatable          :: impHloc           !local hamiltonian
 
   !Variables for DIAGONALIZATION
   !PRIVATE
@@ -229,6 +290,7 @@ MODULE ED_VARS_GLOBAL
   real(8),dimension(:,:),allocatable,save            :: dd_ineq,e_ineq
   integer,allocatable,dimension(:,:)                 :: neigen_sector_ineq
   integer,allocatable,dimension(:)                   :: neigen_total_ineq
+  real(8),dimension(:,:),allocatable                 :: Hreplica_lambda_ineq
 
   !File suffixes for printing fine tuning.
   !=========================================================

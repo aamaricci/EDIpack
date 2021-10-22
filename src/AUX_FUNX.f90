@@ -30,6 +30,7 @@ MODULE ED_AUX_FUNX
      module procedure c_nn2nso
   end interface nn2so_reshape
 
+  
   interface ed_set_suffix
      module procedure :: ed_set_suffix_i
      module procedure :: ed_set_suffix_d
@@ -46,6 +47,21 @@ MODULE ED_AUX_FUNX
   public :: bjoin
   !BINARY SEARCH
   public :: binary_search
+  !AUX RESHAPE FUNCTIONS (internal use)
+  public :: index_stride_so
+  public :: lso2nnn_reshape
+  public :: so2nn_reshape
+  public :: nnn2lso_reshape
+  public :: nn2so_reshape
+  !SEARCH CHEMICAL POTENTIAL
+  public :: ed_search_variable
+  public :: search_chemical_potential
+  !ALLOCATE/DEALLOCATE GRIDS
+  public :: allocate_grids
+  public :: deallocate_grids
+  !SET/RESET GLOBAL FILE SUFFIX
+  public :: ed_set_suffix
+  public :: ed_reset_suffix
   !MPI PROCEDURES
 #ifdef _MPI
   public :: scatter_vector_MPI
@@ -53,44 +69,13 @@ MODULE ED_AUX_FUNX
   public :: gather_vector_MPI
   public :: allgather_vector_MPI
 #endif
-  !AUX RESHAPE FUNCTIONS (internal use)
-  public :: index_stride_so
-  public :: lso2nnn_reshape
-  public :: so2nn_reshape
-  public :: nnn2lso_reshape
-  public :: nn2so_reshape
-  !
-  !SEARCH CHEMICAL POTENTIAL, this should go into DMFT_TOOLS I GUESS
-  public :: ed_search_variable
-  public :: search_chemical_potential
-  !ALLOCATE/DEALLOCATE GRIDS
-  public :: allocate_grids
-  public :: deallocate_grids
 
-  public :: ed_set_suffix
-  public :: ed_reset_suffix
 
 
 
 contains
 
 
-  subroutine ed_reset_suffix()
-    ed_file_suffix=''
-  end subroutine ed_reset_suffix
-
-  subroutine ed_set_suffix_i(indx)
-    integer :: indx
-    ed_file_suffix=reg(ineq_site_suffix)//str(indx,site_indx_padding)
-  end subroutine ed_set_suffix_i
-  subroutine ed_set_suffix_d(indx)
-    real(8) :: indx
-    ed_file_suffix=reg(ineq_site_suffix)//str(indx)
-  end subroutine ed_set_suffix_d
-  subroutine ed_set_suffix_c(indx)
-    character(len=*) :: indx
-    ed_file_suffix=reg(ineq_site_suffix)//str(indx)
-  end subroutine ed_set_suffix_c
 
 
 
@@ -229,6 +214,27 @@ contains
     end if
   end function binary_search
 
+
+
+  !+------------------------------------------------------------------+
+  !PURPOSE : Set/ReSet output files suffix 
+  !+------------------------------------------------------------------+
+  subroutine ed_reset_suffix()
+    ed_file_suffix=''
+  end subroutine ed_reset_suffix
+
+  subroutine ed_set_suffix_i(indx)
+    integer :: indx
+    ed_file_suffix=reg(ineq_site_suffix)//str(indx,site_indx_padding)
+  end subroutine ed_set_suffix_i
+  subroutine ed_set_suffix_d(indx)
+    real(8) :: indx
+    ed_file_suffix=reg(ineq_site_suffix)//str(indx)
+  end subroutine ed_set_suffix_d
+  subroutine ed_set_suffix_c(indx)
+    character(len=*) :: indx
+    ed_file_suffix=reg(ineq_site_suffix)//str(indx)
+  end subroutine ed_set_suffix_c
 
 
 
@@ -687,85 +693,98 @@ contains
     real(8)               :: ndiff
     integer,save          :: count=0,totcount=0,i
     integer               :: unit
+    logical :: master
     !
-    !check actual value of the density *ntmp* with respect to goal value *nread*
-    count=count+1
-    totcount=totcount+1
-    !  
-    if(count==1)then
-       chich = ndelta        !~0.2
-       inquire(file="var_compressibility.restart",EXIST=bool)
-       if(bool)then
-          write(LOGfile,"(A)")"Reading compressibility from file"
-          open(free_unit(unit),file="var_compressibility.restart")
-          read(unit,*)chich
-          close(unit)
+    if(nread==0d0)return
+    master=.true.
+#ifdef _MPI    
+    if(check_MPI())master  = get_master_MPI()
+#endif
+    !
+    if(master)then
+       !check actual value of the density *ntmp* with respect to goal value *nread*
+       count=count+1
+       totcount=totcount+1
+       !  
+       if(count==1)then
+          chich = ndelta        !~0.2
+          inquire(file="var_compressibility.restart",EXIST=bool)
+          if(bool)then
+             write(LOGfile,"(A)")"Reading compressibility from file"
+             open(free_unit(unit),file="var_compressibility.restart")
+             read(unit,*)chich
+             close(unit)
+          endif
+          var_old = var
        endif
+       !
+       ndiff=ntmp-nread
+       !
+       open(free_unit(unit),file="var_compressibility.used")
+       write(unit,*)chich
+       close(unit)
+       !
+       ! if(abs(ndiff)>nerr)then
+       !Get 'charge compressibility"
+       delta_n = ntmp-nold
+       delta_v = var-var_old
+       if(count>1)chich = delta_v/(delta_n+1d-10) !1d-4*nerr)  !((ntmp-nold)/(var-var_old))**-1
+       !
+       !Add here controls on chich: not to be too small....
+       if(chich>10d0)chich=2d0*chich/abs(chich) !do nothing?
+       !
+       chi_shift = ndiff*chich
+       !
+       !update chemical potential
+       var_new = var - chi_shift
+       !
+       !
+       !re-define variables:
+       nold    = ntmp
        var_old = var
+       var     = var_new
+       !
+       !Print information
+       write(LOGfile,"(A11,F16.9,A,F15.9)")  "n      = ",ntmp,"| instead of",nread
+       write(LOGfile,"(A11,ES16.9,A,ES16.9)")"n_diff = ",ndiff,"/",nerr
+       write(LOGfile,"(A11,ES16.9,A,ES16.9)")"dv     = ",delta_v
+       write(LOGfile,"(A11,ES16.9,A,ES16.9)")"dn     = ",delta_n
+       write(LOGfile,"(A11,F16.9,A,F15.9)")  "dv/dn  = ",chich
+       var_sign = (var-var_old)/abs(var-var_old)
+       if(var_sign>0d0)then
+          write(LOGfile,"(A11,ES16.9,A4)")"shift    = ",chi_shift," ==>"
+       else
+          write(LOGfile,"(A11,ES16.9,A4)")"shift    = ",chi_shift," <=="
+       end if
+       write(LOGfile,"(A11,F16.9)")"var     = ",var
+       !
+       ! else
+       !    count=0
+       ! endif
+       !Save info about search variable iteration:
+       open(free_unit(unit),file="search_variable_iteration_info"//reg(ed_file_suffix)//".ed",position="append")
+       ! if(count==1)write(unit,*)"#var,ntmp,ndiff"
+       write(unit,*)totcount,var,ntmp,ndiff
+       close(unit)
+       !
+       !If density is not converged set convergence to .false.
+       if(abs(ndiff)>nerr)converged=.false.
+       !
+       write(LOGfile,"(A18,I5)")"Search var count= ",count
+       write(LOGfile,"(A19,L2)")"Converged       = ",converged
+       print*,""
+       !
+       open(free_unit(unit),file="var_compressibility.restart")
+       write(unit,*)chich
+       close(unit)
+       !
     endif
-    !
-    ndiff=ntmp-nread
-    !
-    open(free_unit(unit),file="var_compressibility.used")
-    write(unit,*)chich
-    close(unit)
-    !
-    ! if(abs(ndiff)>nerr)then
-    !Get 'charge compressibility"
-    delta_n = ntmp-nold
-    delta_v = var-var_old
-    if(count>1)chich = delta_v/(delta_n+1d-10) !1d-4*nerr)  !((ntmp-nold)/(var-var_old))**-1
-    !
-    !Add here controls on chich: not to be too small....
-    if(chich>10d0)chich=2d0*chich/abs(chich) !do nothing?
-    !
-    chi_shift = ndiff*chich
-    !
-    !update chemical potential
-    var_new = var - chi_shift
-    !
-    !
-    !re-define variables:
-    nold    = ntmp
-    var_old = var
-    var     = var_new
-    !
-    !Print information
-    write(LOGfile,"(A11,F16.9,A,F15.9)")  "n      = ",ntmp,"| instead of",nread
-    write(LOGfile,"(A11,ES16.9,A,ES16.9)")"n_diff = ",ndiff,"/",nerr
-    write(LOGfile,"(A11,ES16.9,A,ES16.9)")"dv     = ",delta_v
-    write(LOGfile,"(A11,ES16.9,A,ES16.9)")"dn     = ",delta_n
-    write(LOGfile,"(A11,F16.9,A,F15.9)")  "dv/dn  = ",chich
-    var_sign = (var-var_old)/abs(var-var_old)
-    if(var_sign>0d0)then
-       write(LOGfile,"(A11,ES16.9,A4)")"shift    = ",chi_shift," ==>"
-    else
-       write(LOGfile,"(A11,ES16.9,A4)")"shift    = ",chi_shift," <=="
-    end if
-    write(LOGfile,"(A11,F16.9)")"var     = ",var
-    !
-    ! else
-    !    count=0
-    ! endif
-
-
-    !Save info about search variable iteration:
-    open(free_unit(unit),file="search_variable_iteration_info"//reg(ed_file_suffix)//".ed",position="append")
-    ! if(count==1)write(unit,*)"#var,ntmp,ndiff"
-    write(unit,*)totcount,var,ntmp,ndiff
-    close(unit)
-    !
-    !If density is not converged set convergence to .false.
-    if(abs(ndiff)>nerr)converged=.false.
-    !
-    write(LOGfile,"(A18,I5)")"Search var count= ",count
-    write(LOGfile,"(A19,L2)")"Converged       = ",converged
-    print*,""
-    !
-    open(free_unit(unit),file="var_compressibility.restart")
-    write(unit,*)chich
-    close(unit)
-    !
+#ifdef _MPI
+    if(check_MPI())then
+       call Bcast_MPI(MPI_COMM_WORLD,converged)
+       call Bcast_MPI(MPI_COMM_WORLD,var)
+    endif
+#endif
   end subroutine ed_search_variable
 
 
@@ -785,118 +804,134 @@ contains
     real(8),save          :: nth=1.d-2,var_old,ntmp_old
     logical,save          :: ireduce=.true.
     integer               :: unit
+    logical :: master
     !
-    if(count==0)then
-       inquire(file="var.restart",EXIST=bool)
-       if(bool)then
-          open(free_unit(unit),file="var.restart")
-          read(unit,*)var,ndelta
-          ndelta=abs(ndelta)*ncoeff
-          close(unit)
+    if(nread==0d0)return
+    master=.true.
+#ifdef _MPI    
+    if(check_MPI())master  = get_master_MPI()
+#endif
+    !
+    if(master)then
+       !
+       if(count==0)then
+          inquire(file="var.restart",EXIST=bool)
+          if(bool)then
+             open(free_unit(unit),file="var.restart")
+             read(unit,*)var,ndelta
+             ndelta=abs(ndelta)*ncoeff
+             close(unit)
+          endif
        endif
-    endif
-    !
-    ndiff=ntmp-nread
-    nratio = 0.5d0;!nratio = 1.d0/(6.d0/11.d0*pi)
-    !
-    !check actual value of the density *ntmp* with respect to goal value *nread*
-    count=count+1
-    totcount=totcount+1
-    if(count>2)then
-       do i=1,2
-          nindex_old(i+1)=nindex_old(i)
-       enddo
-    endif
-    nindex_old(1)=nindex
-    !
-    if(ndiff >= nth)then
-       nindex=-1
-    elseif(ndiff <= -nth)then
-       nindex=1
-    else
-       nindex=0
-    endif
-    !
-    !
-    ndelta_old=ndelta
-    bool=nindex/=0.AND.( (nindex+nindex_old(1)==0).OR.(nindex+sum(nindex_old(:))==0) )
-    !if(nindex_old(1)+nindex==0.AND.nindex/=0)then !avoid loop forth and back
-    if(bool)then
-       ndelta=ndelta_old*nratio !decreasing the step
-    else
-       ndelta=ndelta_old
-    endif
-    !
-    if(abs(ndelta_old)<1.d-9)then
-       ndelta_old=0.d0
-       nindex=0
-    endif
-    !
-    !update chemical potential
-    var=var+dble(nindex)*ndelta
-    !
-    ! if(count>0)kcompr = (ntmp - ntmp_old)/(var - var_old)       
-    !
-    !Print information
-    write(LOGfile,"(A,f16.9,A,f15.9)")"n    = ",ntmp," /",nread
-    if(nindex>0)then
-       write(LOGfile,"(A,I0,A1,es16.9,A)")"shift= ",nindex,"*",ndelta," ==>"
-    elseif(nindex<0)then
-       write(LOGfile,"(A,I0,A1,es16.9,A)")"shift= ",nindex,"*",ndelta," <=="
-    else
-       write(LOGfile,"(A,I0,A1,es16.9,A)")"shift= ",nindex,"*",ndelta," ==="
-    endif
-    write(LOGfile,"(A,ES16.9,A,ES16.9)")"dn   = ",ndiff,"/",nth
-    ! write(LOGfile,"(A,10F16.9)")"k    = ",kcompr,1d0/kcompr,ntmp,ntmp_old,ntmp-ntmp_old,var,var_old,var-var_old
-    write(LOGfile,"(A,f15.9)")"var  = ",var
-    !
-    open(free_unit(unit),file="search_mu_iteration"//reg(ed_file_suffix)//".ed",position="append")
-    write(unit,*)var,ntmp,ndiff
-    close(unit)
-    !
-    !check convergence within actual threshold
-    !if reduce is activetd
-    !if density is in the actual threshold
-    !if DMFT is converged
-    !if threshold is larger than nerror (i.e. this is not last loop)
-    bool=ireduce.AND.(abs(ndiff)<nth).AND.converged.AND.(nth>nerr)
-    if(bool)then
-       nth_magnitude_old=nth_magnitude        !save old threshold magnitude
-       nth_magnitude=nth_magnitude_old-1      !decrease threshold magnitude || floor(log10(abs(ntmp-nread)))
-       nth=max(nerr,10.d0**(nth_magnitude))   !set the new threshold 
-       count=0                                !reset the counter
-       converged=.false.                      !reset convergence
-       ndelta=ndelta_old*nratio                  !reduce the delta step
+       !
+       ndiff=ntmp-nread
+       nratio = 0.5d0;!nratio = 1.d0/(6.d0/11.d0*pi)
+       !
+       !check actual value of the density *ntmp* with respect to goal value *nread*
+       count=count+1
+       totcount=totcount+1
+       if(count>2)then
+          do i=1,2
+             nindex_old(i+1)=nindex_old(i)
+          enddo
+       endif
+       nindex_old(1)=nindex
+       !
+       if(ndiff >= nth)then
+          nindex=-1
+       elseif(ndiff <= -nth)then
+          nindex=1
+       else
+          nindex=0
+       endif
+       !
+       !
+       ndelta_old=ndelta
+       bool=nindex/=0.AND.( (nindex+nindex_old(1)==0).OR.(nindex+sum(nindex_old(:))==0) )
+       !if(nindex_old(1)+nindex==0.AND.nindex/=0)then !avoid loop forth and back
+       if(bool)then
+          ndelta=ndelta_old*nratio !decreasing the step
+       else
+          ndelta=ndelta_old
+       endif
+       !
+       if(abs(ndelta_old)<1.d-9)then
+          ndelta_old=0.d0
+          nindex=0
+       endif
+       !
+       !update chemical potential
+       var=var+dble(nindex)*ndelta
+       !
+       ! if(count>0)kcompr = (ntmp - ntmp_old)/(var - var_old)       
+       !
+       !Print information
+       write(LOGfile,"(A,f16.9,A,f15.9)")"n    = ",ntmp," /",nread
+       if(nindex>0)then
+          write(LOGfile,"(A,I0,A1,es16.9,A)")"shift= ",nindex,"*",ndelta," ==>"
+       elseif(nindex<0)then
+          write(LOGfile,"(A,I0,A1,es16.9,A)")"shift= ",nindex,"*",ndelta," <=="
+       else
+          write(LOGfile,"(A,I0,A1,es16.9,A)")"shift= ",nindex,"*",ndelta," ==="
+       endif
+       write(LOGfile,"(A,ES16.9,A,ES16.9)")"dn   = ",ndiff,"/",nth
+       ! write(LOGfile,"(A,10F16.9)")"k    = ",kcompr,1d0/kcompr,ntmp,ntmp_old,ntmp-ntmp_old,var,var_old,var-var_old
+       write(LOGfile,"(A,f15.9)")"var  = ",var
+       !
+       open(free_unit(unit),file="search_mu_iteration"//reg(ed_file_suffix)//".ed",position="append")
+       write(unit,*)var,ntmp,ndiff
+       close(unit)
+       !
+       !check convergence within actual threshold
+       !if reduce is activetd
+       !if density is in the actual threshold
+       !if DMFT is converged
+       !if threshold is larger than nerror (i.e. this is not last loop)
+       bool=ireduce.AND.(abs(ndiff)<nth).AND.converged.AND.(nth>nerr)
+       if(bool)then
+          nth_magnitude_old=nth_magnitude        !save old threshold magnitude
+          nth_magnitude=nth_magnitude_old-1      !decrease threshold magnitude || floor(log10(abs(ntmp-nread)))
+          nth=max(nerr,10.d0**(nth_magnitude))   !set the new threshold 
+          count=0                                !reset the counter
+          converged=.false.                      !reset convergence
+          ndelta=ndelta_old*nratio                  !reduce the delta step
+          !
+       endif
+       !
+       !if density is not converged set convergence to .false.
+       if(abs(ntmp-nread)>nth)converged=.false.
+       !
+       !check convergence for this threshold
+       !!---if smallest threshold-- NO MORE
+       !if reduce is active (you reduced the treshold at least once)
+       !if # iterations > max number
+       !if not yet converged
+       !set threshold back to the previous larger one.
+       !bool=(nth==nerr).AND.ireduce.AND.(count>niter).AND.(.not.converged)
+       bool=ireduce.AND.(count>niter).AND.(.not.converged)
+       if(bool)then
+          ireduce=.false.
+          nth=10.d0**(nth_magnitude_old)
+       endif
+       !
+       write(LOGfile,"(A,I5)")"count= ",count
+       write(LOGfile,"(A,L2)")"Converged=",converged
+       print*,""
+       !
+       open(free_unit(unit),file="var.restart")
+       write(unit,*)var,ndelta
+       close(unit)
+       !
+       ntmp_old = ntmp
+       var_old  = var
        !
     endif
-    !
-    !if density is not converged set convergence to .false.
-    if(abs(ntmp-nread)>nth)converged=.false.
-    !
-    !check convergence for this threshold
-    !!---if smallest threshold-- NO MORE
-    !if reduce is active (you reduced the treshold at least once)
-    !if # iterations > max number
-    !if not yet converged
-    !set threshold back to the previous larger one.
-    !bool=(nth==nerr).AND.ireduce.AND.(count>niter).AND.(.not.converged)
-    bool=ireduce.AND.(count>niter).AND.(.not.converged)
-    if(bool)then
-       ireduce=.false.
-       nth=10.d0**(nth_magnitude_old)
+#ifdef _MPI
+    if(check_MPI())then
+       call Bcast_MPI(MPI_COMM_WORLD,converged)
+       call Bcast_MPI(MPI_COMM_WORLD,var)
     endif
-    !
-    write(LOGfile,"(A,I5)")"count= ",count
-    write(LOGfile,"(A,L2)")"Converged=",converged
-    print*,""
-    !
-    open(free_unit(unit),file="var.restart")
-    write(unit,*)var,ndelta
-    close(unit)
-    !
-    ntmp_old = ntmp
-    var_old  = var
-    !
+#endif
   end subroutine search_chemical_potential
 
 

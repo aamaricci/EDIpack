@@ -1,11 +1,40 @@
 MODULE EDIPACK
-  USE ED_INPUT_VARS, only: ed_read_input                             ,&
-       Norb,Nspin,Nloop,Nph,Uloc,Ust,Jh,Jx,Jp,xmu,beta,g_ph,w0_ph,eps,&
-       wini,wfin,xmin,xmax,Nsuccess,dmft_error,sb_field,cg_Scheme    ,&
-       nread,nerr,Lmats,Lreal,Lpos,Hfile,HLOCfile,LOGfile,bath_type   
+  USE ED_INPUT_VARS  , only: &
+       ed_read_input , &
+       Norb          , &
+       Nspin         , &
+       Nloop         , &
+       Nph           , &
+       Uloc          , &
+       Ust           , &
+       Jh            , &
+       Jx            , &
+       Jp            , &
+       xmu           , &
+       beta          , &
+       g_ph          , &
+       w0_ph         , &
+       eps           , &
+       wini          , &
+       wfin          , &
+       xmin          , &
+       xmax          , &
+       Nsuccess      , &
+       dmft_error    , &
+       sb_field      , &
+       cg_Scheme     , &
+       nread         , &
+       Lmats         , &
+       Lreal         , &
+       Lpos          , &
+       Hfile         , &
+       HLOCfile      , &
+       LOGfile       , &
+       bath_type 
 
-  USE ED_HLOC_DECOMPOSITION, only: ed_set_Hloc => set_Hloc
+
   USE ED_BATH, only:                                                    &
+       ed_set_Hreplica                 => set_Hreplica                 ,&
        ed_get_bath_dimension           => get_bath_dimension           ,&
        ed_get_bath_component_dimension => get_bath_component_dimension ,&
        ed_get_bath_component           => get_bath_component           ,&
@@ -19,9 +48,11 @@ MODULE EDIPACK
        ed_break_symmetry_bath          => break_symmetry_bath
 
   USE ED_AUX_FUNX, only:                        &
-       ed_set_suffix,ed_reset_suffix           ,&       
-       ed_search_variable                      ,&
-       ed_search_chemical_potential     => search_chemical_potential
+       ed_set_suffix                                                     , &
+       ed_reset_suffix                                                   , &
+       ed_search_variable                                                , &
+       ed_search_chemical_potential     => search_chemical_potential 
+
 
   USE ED_IO, only:                              &
        ed_get_sigma_matsubara                 , &
@@ -34,8 +65,7 @@ MODULE EDIPACK
        ed_get_mag                             , &
        ed_get_docc                            , &
        ed_get_eimp                            , &
-       ed_get_doubles                         , &
-       ed_get_density_matrix
+       ed_get_doubles
 
   USE ED_BATH_FIT,  only: ed_chi2_fitgf
 
