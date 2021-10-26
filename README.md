@@ -31,16 +31,16 @@ and from the just created directory make a standard out-of-source CMake compilat
 
 The `CMake` compilation can be controlled using the following additional variables, default values between `< >`:   
 
-* `-DPREFIX=prefix directory <~/opt/edipack/PLAT/[VERSION]>` 
+* `-DPREFIX=prefix directory <~/opt/edipack/>` 
 * `-DUSE_MPI=<yes>/no`  
 * `-DVERBOSE=yes/<no> `  
 * `-DBUILD_TYPE=<RELEASE>/TESTING/DEBUG`  
 
-### System loading: 
+### System loading:
 
 The library can be loaded into the operative system using one of the following, automatically generated, methods:    
 
-* environment module file `~/.modules.d/edipack/<PLAT>`  
+* environment module file `~/.modules.d/edipack/<PLAT>/<VERSION>`  
 * homebrew `bash` script `<PREFIX>/bin/edipack_configvars.sh`
 * pkg-config file in `~/.pkg-config.d/edipack.pc`
 
@@ -75,21 +75,17 @@ Copyright  (c), Adriano Amaricci, Lorenzo Crippa, Alberto Scazzola, Francesco Pe
 All rights reserved. 
 
 This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-The software is provided as it is and can be read and copied, in agreement with 
-the Terms of Service of GITHUB. 
-Using this code please consider to cite the corresponding article [arxiv.org/2105.06806](https://arxiv.org/abs/2105.06806)
+it under the terms of the GNU Lesser General Public License (LGPL) as published by
+the Free Software Foundation, either version 3 of the License, or any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+GNU LGPL for more details.
+
+You should have received a copy of the GNU LGPL along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Using this code please consider to cite the corresponding article [arxiv.org/2105.06806](https://arxiv.org/abs/2105.06806)
 
 --
 
