@@ -13,9 +13,16 @@ MODULE ED_SETUP
   private
 
 
+  interface set_Himpurity
+     module procedure :: set_Himpurity_so_d
+     module procedure :: set_Himpurity_nn_d
+  end interface set_Himpurity
+
 
   public :: init_ed_structure
   public :: setup_global
+  public :: set_Himpurity
+
 
 contains
 
@@ -125,7 +132,6 @@ contains
             'Largest Sector(s)     = ',DimUps,DimDws,DimPh,product(DimUps)*product(DimDws)*DimPh
        write(LOGfile,"(A)")"--------------------------------------------"
     endif
-    call sleep(1)
     !
     !
     allocate(spH0ups(Ns_Ud))
@@ -158,10 +164,8 @@ contains
        write(LOGfile,"(A,I3)")"Nstates   Total  = ", lanc_nstates_total
        !
        write(LOGfile,"(A)")"Lanczos FINITE temperature calculation:"
-       call sleep(1)
     else
        write(LOGfile,"(A)")"Lanczos ZERO temperature calculation:"
-       call sleep(1)
     endif
     !
     !
@@ -195,10 +199,10 @@ contains
     impG0mats=zero
     impG0real=zero
     !
-    allocate(impDmats_ph(0:Lmats))
-    allocate(impDreal_ph(Lreal))
-    impDmats_ph=zero
-    impDreal_ph=zero
+    allocate(impDmats(0:Lmats))
+    allocate(impDreal(Lreal))
+    impDmats=zero
+    impDreal=zero
     !
     !allocate observables
     allocate(ed_dens(Norb),ed_docc(Norb),ed_dens_up(Norb),ed_dens_dw(Norb),ed_mag(Norb))
@@ -225,6 +229,42 @@ contains
     allocate(exctChi_iv(0:2,Norb,Norb,0:Lmats))
     !
   end subroutine init_ed_structure
+
+
+
+
+  !+------------------------------------------------------------------+
+  !PURPOSE  : Setup Himpurity, the local part of the non-interacting Hamiltonian
+  !+------------------------------------------------------------------+
+  subroutine set_Himpurity_nn_d(hloc)
+    real(8),dimension(Nspin,Nspin,Norb,Norb) :: hloc
+    integer                                  :: iorb,jorb,ispin,jspin
+    if(allocated(impHloc))deallocate(impHloc)
+    allocate(impHloc(Nspin,Nspin,Norb,Norb));impHloc=zero
+    impHloc = Hloc
+    if(ed_verbose>2)then
+       do ispin=1,Nspin
+          do iorb=1,Norb
+             write(LOGfile,"(100(F8.4,2x))")((Hloc(ispin,jspin,iorb,jorb),jorb =1,Norb),jspin=1,Nspin)
+          enddo
+       enddo
+       write(LOGfile,*)""
+    endif
+  end subroutine set_Himpurity_nn_d
+
+  subroutine set_Himpurity_so_d(hloc)
+    real(8),dimension(Nspin*Norb,Nspin*Norb) :: hloc
+    integer                                  :: is,js
+    if(allocated(impHloc))deallocate(impHloc)
+    allocate(impHloc(Nspin,Nspin,Norb,Norb));impHloc=zero
+    impHloc = so2nn_reshape(Hloc,Nspin,Norb)
+    if(ed_verbose>2)then
+       do is=1,Nspin*Norb
+          write(LOGfile,"(100(F8.4,2x))")(Hloc(is,js),js =1,Nspin*Norb)
+       enddo
+       write(LOGfile,*)""
+    endif
+  end subroutine set_Himpurity_so_d
 
 
 
@@ -293,7 +333,6 @@ contains
           if(any(Nups < Ndws))twin_mask(isector)=.false.
        enddo
        write(LOGfile,"(A,I6,A,I9)")"Looking into ",count(twin_mask)," sectors out of ",Nsectors
-       call sleep(1)
     endif
     !
     select case(bath_type)

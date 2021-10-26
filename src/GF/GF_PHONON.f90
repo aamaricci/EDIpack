@@ -169,12 +169,12 @@ contains
        ! So we impose that: if (beta*dE is larger than a small qty) we sum up the contribution, else
        ! we do not include the contribution (because we are in the situation described above).
        ! For the real-axis case this problem is circumvented by the usual i*0+ = xi*eps
-       if(beta*dE > 1d-3)impDmats_ph(0)=impDmats_ph(0) - peso*2*(1d0-exp(-beta*dE))/dE 
+       if(beta*dE > 1d-3)impDmats(0)=impDmats(0) - peso*2*(1d0-exp(-beta*dE))/dE 
        do i=1,Lmats
-          impDmats_ph(i)=impDmats_ph(i) - peso*(1d0-exp(-beta*dE))*2d0*dE/(vm(i)**2+dE**2)
+          impDmats(i)=impDmats(i) - peso*(1d0-exp(-beta*dE))*2d0*dE/(vm(i)**2+dE**2)
        enddo
        do i=1,Lreal
-          impDreal_ph(i)=impDreal_ph(i) + peso*(1d0-exp(-beta*dE))*(1d0/(dcmplx(vr(i),eps) - dE) - 1d0/(dcmplx(vr(i),eps) + dE))
+          impDreal(i)=impDreal(i) + peso*(1d0-exp(-beta*dE))*(1d0/(dcmplx(vr(i),eps) - dE) - 1d0/(dcmplx(vr(i),eps) + dE))
        enddo
     enddo
   end subroutine add_to_lanczos_phonon

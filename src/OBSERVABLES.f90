@@ -293,7 +293,7 @@ contains
     !
     if(MPIMASTER)then
        call get_szr
-       if(DimPh>1) w_ph = sqrt(-2.d0*w0_ph/impDmats_ph(0)) !renormalized phonon frequency
+       if(DimPh>1) w_ph = sqrt(-2.d0*w0_ph/impDmats(0)) !renormalized phonon frequency
        if(iolegend)call write_legend
        call write_observables()
        write(LOGfile,"(A,10f18.12,f18.12)")&

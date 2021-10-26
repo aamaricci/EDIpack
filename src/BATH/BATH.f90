@@ -19,11 +19,6 @@ MODULE ED_BATH
   !
   !##################################################################
   !Interface for user bath I/O operations: get,set,copy
-  interface get_bath_dimension
-     module procedure ::  get_bath_dimension_direct
-     module procedure ::  get_bath_dimension_symmetries
-  end interface get_bath_dimension
-
   interface set_Hreplica
      module procedure init_Hreplica_direct_so
      module procedure init_Hreplica_direct_nn
@@ -138,17 +133,12 @@ contains
   !+-------------------------------------------------------------------+
   !PURPOSE  : Inquire the correct bath size to allocate the 
   ! the bath array in the calling program.
-  !
-  ! Get size of each dimension of the component array. 
-  ! The Result is an rank 1 integer array Ndim with dimension:
-  ! 3 for get_component_size_bath
-  ! 2 for get_spin_component_size_bath & get_orb_component_size_bath
-  ! 1 for get_spin_orb_component_size_bath
   !+-------------------------------------------------------------------+
-  function get_bath_dimension_direct(Hloc_nn) result(bath_size)
-    complex(8),optional,intent(in) :: Hloc_nn(:,:,:,:)
-    integer                        :: bath_size,ndx,ispin,iorb,jspin,jorb,io,jo,counter
+  function get_bath_dimension() result(bath_size)
+    integer                        :: bath_size
+    integer                        :: ndx,ispin,iorb,jspin,jorb,io,jo,counter
     real(8),allocatable            :: Htmp(:,:,:,:)
+    !
     select case(bath_type)
     case default
        !( e [Nspin][Norb][Nbath] + v [Nspin][Norb][Nbath] )
@@ -161,58 +151,17 @@ contains
        bath_size = Nspin*bath_size
        !
     case('replica')
-       allocate(Htmp(Nspin,Nspin,Norb,Norb))
-       if(present(Hloc_nn))then              !User defined Hloc_nn 
-          Htmp=Hloc_nn
-       elseif(Hreplica_status)then !User defined Hreplica_basis
-          Htmp=Hreplica_build(Hreplica_lambda)
-       else                                  !Error:
-          deallocate(Htmp)
-          stop "ERROR get_bath_dimension_direct: bath_type=replica neither Hloc_nn present nor Hreplica_basis defined"
-       endif
+       if(.not.Hreplica_status)stop "ERROR get_bath_dimension_direct: bath_type=replica but Hreplica_basis is un-defined. Call ed_set_Hreplica."    
        !
        !Real part of nonzero elements
-       ndx=0
-       do ispin=1,Nspin
-          do jspin=1,Nspin
-             do iorb=1,Norb
-                do jorb=1,Norb
-                   io=index_stride_so(ispin,iorb)
-                   jo=index_stride_so(jspin,jorb)
-                   if(io > jo)cycle
-                   if((Htmp(ispin,jspin,iorb,jorb)/=0d0))ndx=ndx+1
-                enddo
-             enddo
-          enddo
-       enddo
-       ndx = ndx * Nbath !number of non vanishing elements for each replica
-       ndx = ndx + Nbath !diagonal hybridizations: Vs (different per spin)
-       ndx = ndx + 1     !we also print Nbasis
+       ndx = Hreplica_Nsym
+       ndx = ndx * Nbath !number of replicas
+       ndx = ndx + Nbath !add diagonal hybridizations
+       ndx = ndx + 1     !include Nbasis
        bath_size = ndx
     end select
-  end function get_bath_dimension_direct
+  end function get_bath_dimension
 
-  function get_bath_dimension_symmetries(Hloc_nn) result(bath_size)
-    complex(8),dimension(:,:,:,:,:),intent(in) :: Hloc_nn
-    integer                                    :: bath_size,ndx,isym,Nsym
-    !
-    !number of symmetries
-    Nsym=size(Hloc_nn,5)
-    if(Nsym/=size(Hreplica_lambda))stop "ERROR get_bath_dimension_symmetries:  size(Hloc,5)/= size(Hreplica_lambda). The replica basis and the number of couplings do not correspond"
-    !
-    ndx=Nsym
-    !
-    !number of replicas
-    ndx = ndx * Nbath
-    !diagonal hybridizations: Vs
-    ndx = ndx + Nbath
-    !
-    !include Nbasis
-    ndx=ndx+1
-    !
-    bath_size = ndx
-    !
-  end function get_bath_dimension_symmetries
 
 
   !+-------------------------------------------------------------------+
@@ -222,17 +171,12 @@ contains
     real(8),dimension(:)           :: bath_
     integer                        :: Ntrue,i
     logical                        :: bool
-    complex(8),allocatable         :: Hreplica(:,:,:,:,:)![Nspin][:][Norb][:][Nsym]
     select case (bath_type)
     case default
        Ntrue = get_bath_dimension()
     case ('replica')
-       if(.not.Hreplica_status)STOP "check_bath_dimension: Hreplica_basis not allocated"
-       if(.not.allocated(Hreplica))allocate(Hreplica(Nspin,Nspin,Norb,Norb,size(Hreplica_basis)))
-       do i=1,size(Hreplica_basis)
-          Hreplica(:,:,:,:,i)=Hreplica_basis(i)%O
-       enddo
-       Ntrue   = get_bath_dimension_symmetries(Hreplica)
+       if(.not.Hreplica_status)STOP "ERROR check_bath_dimension: bath_type=replica but Hreplica_basis is un-defined. Call ed_set_Hreplica."
+       Ntrue = get_bath_dimension()
     end select
     bool  = ( size(bath_) == Ntrue )
   end function check_bath_dimension
@@ -242,22 +186,177 @@ contains
 
 
 
-  ! !##################################################################
-  ! !
-  ! !     USER BATH ROUTINES:
-  ! !
-  ! !##################################################################
-  ! include 'user_aux.f90'
+  !##################################################################
+  !
+  !    BATH COMPONENTS ROUTINES:
+  !
+  !##################################################################
+  !+-----------------------------------------------------------------------------+!
+  !PURPOSE:  check if the specified itype is consistent with the input parameters.
+  !+-----------------------------------------------------------------------------+!
+  subroutine check_bath_component(type)
+    character(len=1) :: type
+    select case(bath_type)
+    case default
+       if(type/="e".OR.type/='v')stop "check_bath_component error: type!=e,v"
+    case ("replica")
+       if(type/="l")stop "check_bath_component error: type!=l"
+    end select
+    return
+  end subroutine check_bath_component
+
+
+  !+-------------------------------------------------------------------+
+  !PURPOSE  : Inquire the correct bath size to allocate the 
+  ! the bath array in the calling program.
+  !
+  ! Get size of each dimension of the component array. 
+  ! The Result is an rank 1 integer array Ndim with dimension:
+  ! 3 for get_component_size_bath
+  ! 2 for get_spin_component_size_bath & get_orb_component_size_bath
+  ! 1 for get_spin_orb_component_size_bath
+  !+-------------------------------------------------------------------+
+  function get_bath_component_dimension(type) result(Ndim)
+    character(len=1) :: type
+    integer          :: Ndim(3),Nsym
+    call  check_bath_component(type)
+    select case(bath_type)
+    case default
+       Ndim=[Nspin,Norb,Nbath]
+    case('hybrid')
+       select case(type)
+       case('e')
+          Ndim=[Nspin,1,Nbath]
+       case('v')
+          Ndim=[Nspin,Norb,Nbath]
+       end select
+    case('replica')
+       if(.not.allocated(Hreplica_lambda))stop "get_bath_component_dimension ERROR: Hreplica_lambda not allocated. Can not return the dimensions"
+       Nsym = size(Hreplica_lambda)
+       Ndim = [1,Nsym,Nbath]       !Nsym lambda per bath
+    end select
+  end function get_bath_component_dimension
+
+
+  !+-----------------------------------------------------------------------------+!
+  !PURPOSE: check that the input array hsa the correct dimensions specified 
+  ! for the choice of itype and possiblty ispin and/or iorb.
+  !+-----------------------------------------------------------------------------+!
+  subroutine assert_bath_component_size(array,type,string1,string2)
+    real(8),dimension(:,:,:) :: array
+    character(len=1)         :: type
+    character(len=*)         :: string1,string2
+    integer                  :: Ndim(3)
+    Ndim = get_bath_component_dimension(type)
+    call assert_shape(Array,Ndim,reg(string1),reg(string2))
+  end subroutine assert_bath_component_size
+
+
+  !+-----------------------------------------------------------------------------+!
+  !PURPOSE: Get a specified itype,ispin,iorb component of the user bath.
+  ! The component is returned into an Array of rank D
+  ! get_full_component_bath    : return the entire itype component (D=3)
+  ! get_spin_component_bath    : return the itype component for the select ispin (D=2)
+  ! get_spin_orb_component_bath: return the itype component for the select ispin & iorb (D=1)
+  !+-----------------------------------------------------------------------------+!
+  subroutine get_bath_component(array,bath_,type)
+    real(8),dimension(:,:,:) :: array
+    real(8),dimension(:)     :: bath_
+    character(len=1)         :: type
+    logical                  :: check
+    type(effective_bath)     :: dmft_bath_
+    !
+    check= check_bath_dimension(bath_)
+    if(.not.check)stop "get_component_bath error: wrong bath dimensions"
+    call allocate_dmft_bath(dmft_bath_)
+    call set_dmft_bath(bath_,dmft_bath_)
+    call assert_bath_component_size(array,type,"get_bath_component","Array")
+    call check_bath_component(type)
+    select case(type)
+    case('e')
+       Array = dmft_bath_%e(:,:,:)
+    case('v')
+       Array = dmft_bath_%v(:,:,:)
+    case('l')
+       do ibath=1,size(dmft_bath_%item)
+          do isym=1,dmft_bath_%Nbasis
+             Array(1,isym,ibath) = dmft_bath_%item(ibath)%lambda(isym)
+          enddo
+       enddo
+    end select
+    call deallocate_dmft_bath(dmft_bath_)
+  end subroutine get_bath_component
+
+
+  !+-----------------------------------------------------------------------------+!
+  !PURPOSE: Set a specified itype,ispin,iorb component of the user bath.
+  !+-----------------------------------------------------------------------------+!
+  subroutine set_bath_component(array,bath_,type)
+    real(8),dimension(:,:,:) :: array
+    real(8),dimension(:)     :: bath_
+    character(len=1)         :: type
+    logical                  :: check
+    type(effective_bath)     :: dmft_bath_
+    !
+    check= check_bath_dimension(bath_)
+    if(.not.check)stop "set_component_bath error: wrong bath dimensions"
+    call allocate_dmft_bath(dmft_bath_)
+    call set_dmft_bath(bath_,dmft_bath_)
+    call assert_bath_component_size(array,type,"set_bath_component","Array")
+    call check_bath_component(type)
+    select case(type)
+    case('e')
+       dmft_bath_%e(:,:,:) = Array 
+    case('v')
+       dmft_bath_%v(:,:,:) = Array
+    case('l')
+       do ibath=1,size(dmft_bath_%item)
+          do isym=1,dmft_bath_%Nbasis
+             dmft_bath_%item(ibath)%lambda(isym) = Array(1,isym,ibath)
+          enddo
+       enddo
+    end select
+    call get_dmft_bath(dmft_bath_,bath_)
+    call deallocate_dmft_bath(dmft_bath_)
+  end subroutine set_bath_component
 
 
 
+  !+-----------------------------------------------------------------------------+!
+  !PURPOSE: Copy a specified component of IN bath to the OUT bath.
+  !+-----------------------------------------------------------------------------+!
+  subroutine copy_bath_component(bathIN,bathOUT,type)
+    real(8),dimension(:)     :: bathIN,bathOUT
+    character(len=1)         :: type
+    logical                  :: check
+    type(effective_bath)     :: dIN,dOUT
+    !
+    check= check_bath_dimension(bathIN)
+    if(.not.check)stop "copy_component_bath error: wrong bath dimensions IN"
+    check= check_bath_dimension(bathOUT)
+    if(.not.check)stop "copy_component_bath error: wrong bath dimensions OUT"
+    call allocate_dmft_bath(dIN)
+    call allocate_dmft_bath(dOUT)
+    call set_dmft_bath(bathIN,dIN)
+    call set_dmft_bath(bathOUT,dOUT)
+    call check_bath_component(type)
+    select case(type)
+    case('e')
+       dOUT%e(:,:,:)  = dIN%e(:,:,:)
+    case('v')
+       dOUT%v(:,:,:)  = dIN%v(:,:,:)
+    case('l')
+       do ibath=1,size(dOUT%item)
+          do isym=1,dOUT%Nbasis
+             dOUT%item(ibath)%lambda(isym) = dIN%item(ibath)%lambda(isym)
+          enddo
+       enddo
+    end select
+    call get_dmft_bath(dOUT,bathOUT)
+    call deallocate_dmft_bath(dIN)
+    call deallocate_dmft_bath(dOUT)
+  end subroutine copy_bath_component
 
-  ! !##################################################################
-  ! !
-  ! !     DMFT BATH ROUTINES:
-  ! !
-  ! !##################################################################
-  ! include 'dmft_aux.f90'
 
 
 
@@ -619,190 +718,245 @@ contains
 
 
 
-  !+-----------------------------------------------------------------------------+!
-  !PURPOSE:  check if the specified itype is consistent with the input parameters.
-  !+-----------------------------------------------------------------------------+!
-  subroutine check_bath_component(type)
-    character(len=1) :: type
-    select case(bath_type)
-    case default
-       if(type/="e".OR.type/='v')stop "check_bath_component error: type!=e,v"
-    case ("replica")
-       if(type/="l")stop "check_bath_component error: type!=l"
-    end select
-    return
-  end subroutine check_bath_component
 
 
-  !+-------------------------------------------------------------------+
-  !PURPOSE  : Inquire the correct bath size to allocate the 
-  ! the bath array in the calling program.
+
+
+
+
+
+
+
+
+
+  !##################################################################
   !
-  ! Get size of each dimension of the component array. 
-  ! The Result is an rank 1 integer array Ndim with dimension:
-  ! 3 for get_component_size_bath
-  ! 2 for get_spin_component_size_bath & get_orb_component_size_bath
-  ! 1 for get_spin_orb_component_size_bath
+  !     H_REPLICA ROUTINES:
+  !
+  !##################################################################
+  !-------------------------------------------------------------------!
+  ! PURPOSE: INITIALIZE INTERNAL Hreplica STRUCTURES
+  !-------------------------------------------------------------------!
+  !allocate GLOBAL basis for H (used for impHloc and bath) and vectors coefficient
+  subroutine allocate_hreplica(Nsym)
+    integer          :: Nsym
+    integer          :: isym
+    !
+    if(allocated(Hreplica_basis))deallocate(Hreplica_basis)
+    if(allocated(Hreplica_lambda))deallocate(Hreplica_lambda)
+    !
+    Hreplica_Nsym=Nsym
+    allocate(Hreplica_basis(Nsym))
+    allocate(Hreplica_lambda(Nsym))
+    do isym=1,Nsym
+       allocate(Hreplica_basis(isym)%O(Nspin,Nspin,Norb,Norb))
+       Hreplica_basis(isym)%O=0d0
+       Hreplica_lambda(isym)=0d0
+    enddo
+    Hreplica_status=.true.
+  end subroutine allocate_hreplica
+
+
+  !deallocate GLOBAL basis for H (used for impHloc and bath) and vectors coefficient
+  subroutine deallocate_hreplica()
+    integer              :: isym
+    !
+    do isym=1,size(Hreplica_basis)
+       deallocate(Hreplica_basis(isym)%O)
+    enddo
+    deallocate(Hreplica_basis)
+    deallocate(Hreplica_lambda)
+    Hreplica_Nsym=0
+    Hreplica_status=.false.
+  end subroutine deallocate_hreplica
+
+
+  !+------------------------------------------------------------------+
+  !PURPOSE  : Set Hreplica from user defined Hloc
+  !1: [Nspin,Nspin,Norb,Norb]
+  !2: [Nspin*Norb,Nspin*Norb]
+  !+------------------------------------------------------------------+
+  subroutine init_Hreplica_direct_nn(Hloc)
+    integer                                     :: ispin,jspin,iorb,jorb,counter,io,jo,Nsym
+    real(8),dimension(Nspin,Nspin,Norb,Norb)    :: Hloc
+    logical(8),dimension(Nspin,Nspin,Norb,Norb) :: Hmask
+    !
+    Hmask=.false.
+    !
+    counter=0
+    do ispin=1,Nspin
+       do jspin=1,Nspin
+          do iorb=1,Norb
+             do jorb=1,Norb
+                io=index_stride_so(ispin,iorb)
+                jo=index_stride_so(jspin,jorb)
+                if(io > jo )cycle
+                if(Hloc(ispin,jspin,iorb,jorb)/=0d0)counter=counter+1
+             enddo
+          enddo
+       enddo
+    enddo
+    !
+    call allocate_hreplica(counter)
+    !
+    counter=0
+    do ispin=1,Nspin
+       do jspin=1,Nspin
+          do iorb=1,Norb
+             do jorb=1,Norb
+                io=index_stride_so(ispin,iorb)
+                jo=index_stride_so(jspin,jorb)
+                if(io > jo )cycle
+                if(Hloc(ispin,jspin,iorb,jorb)/=0d0)then
+                   counter=counter+1
+                   Hreplica_basis(counter)%O(ispin,jspin,iorb,jorb)=1d0
+                   Hreplica_basis(counter)%O(ispin,jspin,jorb,iorb)=1d0
+                   Hreplica_lambda(counter)=Hloc(ispin,ispin,iorb,jorb)
+                endif
+             enddo
+          enddo
+       enddo
+    enddo
+    !
+  end subroutine init_Hreplica_direct_nn
+
+  subroutine init_Hreplica_direct_so(Hloc)
+    real(8),dimension(Nspin*Norb,Nspin*Norb) :: Hloc
+    call init_Hreplica_direct_nn(so2nn_reshape(Hloc,Nspin,Norb))
+  end subroutine init_Hreplica_direct_so
+
+
+  subroutine init_Hreplica_symmetries_site(Hvec,lambdavec)
+    real(8),dimension(:,:,:,:,:)             :: Hvec
+    real(8),dimension(:)                     :: lambdavec
+    integer                                  :: isym,Nsym
+    integer                                  :: iorb,jorb,ispin,jspin
+    real(8),dimension(Nspin,Nspin,Norb,Norb) :: H
+    !
+    Nsym=size(lambdavec)
+    call assert_shape(Hvec,[Nspin,Nspin,Norb,Norb,Nsym],"init_Hreplica_symmetries","Hvec")
+    !
+    call allocate_hreplica(Nsym)
+    !
+    do isym=1,Nsym
+       Hreplica_lambda(isym)  = lambdavec(isym)
+       Hreplica_basis(isym)%O = Hvec(:,:,:,:,isym)
+    enddo
+    !
+    if(ed_verbose>2)then
+       H = Hreplica_build(Hreplica_lambda)
+       do ispin=1,Nspin
+          do iorb=1,Norb
+             if(MpiMaster)write(LOGfile,"(100(F8.4,2x))")&
+                  ((H(ispin,jspin,iorb,jorb),jorb =1,Norb),jspin=1,Nspin)
+          enddo
+       enddo
+       write(LOGfile,*)""
+    endif
+  end subroutine init_Hreplica_symmetries_site
+
+
+
+  subroutine init_Hreplica_symmetries_lattice(Hvec,lambdavec)
+    real(8),dimension(:,:,:,:,:)             :: Hvec
+    real(8),dimension(:,:)                   :: lambdavec ![Nlat,Nsym]
+    integer                                  :: isym,ilat,Nsym,Nlat
+    integer                                  :: iorb,jorb,ispin,jspin
+    real(8),dimension(Nspin,Nspin,Norb,Norb) :: H
+    !
+    Nlat=size(lambdavec,1)
+    Nsym=size(lambdavec,2)
+    call assert_shape(Hvec,[Nspin,Nspin,Norb,Norb,Nsym],"init_Hreplica_symmetries","Hvec")
+    !
+    if(allocated(Hreplica_lambda_ineq))deallocate(Hreplica_lambda_ineq)
+    allocate(Hreplica_lambda_ineq(Nlat,Nsym))
+    call allocate_hreplica(Nsym)
+    !
+    do isym=1,Nsym
+       Hreplica_lambda_ineq(:,isym)  = lambdavec(:,isym)
+       Hreplica_basis(isym)%O = Hvec(:,:,:,:,isym)
+    enddo
+    !
+    if(ed_verbose>2)then
+       do ilat=1,Nlat
+          H = Hreplica_build(Hreplica_lambda_ineq(ilat,:))
+          do ispin=1,Nspin
+             do iorb=1,Norb
+                if(MpiMaster)write(LOGfile,"(100(F8.4,2x))")&
+                     ((H(ispin,jspin,iorb,jorb),jorb =1,Norb),jspin=1,Nspin)
+             enddo
+          enddo
+          write(LOGfile,*)""
+       enddo
+    endif
+  end subroutine init_Hreplica_symmetries_lattice
+
+
+  subroutine Hreplica_site(site)
+    integer :: site
+    if(site<1.OR.site>size(Hreplica_lambda_ineq,1))stop "ERROR Hreplica_site: site not in [1,Nlat]"
+    if(.not.allocated(Hreplica_lambda_ineq))stop "ERROR Hreplica_site: Hreplica_lambda_ineq not allocated"
+    Hreplica_lambda(:)  = Hreplica_lambda_ineq(site,:)
+  end subroutine Hreplica_site
+
+
+  !reconstruct [Nspin,Nspin,Norb,Norb] hamiltonian from basis expansion given [lambda]
+  function Hreplica_build(lambdavec) result(H)
+    real(8),dimension(:)                     :: lambdavec
+    integer                                  :: isym
+    real(8),dimension(Nspin,Nspin,Norb,Norb) :: H
+    !
+    if(.not.Hreplica_status)STOP "ERROR Hreplica_build: Hreplica_basis is not setup"
+    if(size(lambdavec)/=size(Hreplica_basis)) STOP "ERROR Hreplica_build: Wrong coefficient vector size"
+    H=zero
+    do isym=1,size(lambdavec)
+       H=H+lambdavec(isym)*Hreplica_basis(isym)%O
+    enddo
+  end function Hreplica_build
+
+
+
   !+-------------------------------------------------------------------+
-  function get_bath_component_dimension(type) result(Ndim)
-    character(len=1) :: type
-    integer          :: Ndim(3),Nsym
-    call  check_bath_component(type)
-    select case(bath_type)
-    case default
-       Ndim=[Nspin,Norb,Nbath]
-    case('hybrid')
-       select case(type)
-       case('e')
-          Ndim=[Nspin,1,Nbath]
-       case('v')
-          Ndim=[Nspin,Norb,Nbath]
-       end select
-    case('replica')
-       if(.not.allocated(Hreplica_lambda))stop "get_bath_component_dimension ERROR: Hreplica_lambda not allocated. Can not return the dimensions"
-       Nsym = size(Hreplica_lambda)
-       Ndim = [1,Nsym,Nbath]       !Nsym lambda per bath
-    end select
-  end function get_bath_component_dimension
-
-
-  !+-----------------------------------------------------------------------------+!
-  !PURPOSE: check that the input array hsa the correct dimensions specified 
-  ! for the choice of itype and possiblty ispin and/or iorb.
-  !+-----------------------------------------------------------------------------+!
-  subroutine assert_bath_component_size(array,type,string1,string2)
-    real(8),dimension(:,:,:) :: array
-    character(len=1)         :: type
-    character(len=*)         :: string1,string2
-    integer                  :: Ndim(3)
-    Ndim = get_bath_component_dimension(type)
-    call assert_shape(Array,Ndim,reg(string1),reg(string2))
-  end subroutine assert_bath_component_size
-
-
-
-
-
-
-
-
-  !+-----------------------------------------------------------------------------+!
-  !PURPOSE: Get a specified itype,ispin,iorb component of the user bath.
-  ! The component is returned into an Array of rank D
-  ! get_full_component_bath    : return the entire itype component (D=3)
-  ! get_spin_component_bath    : return the itype component for the select ispin (D=2)
-  ! get_spin_orb_component_bath: return the itype component for the select ispin & iorb (D=1)
-  !+-----------------------------------------------------------------------------+!
-  subroutine get_bath_component(array,bath_,type)
-    real(8),dimension(:,:,:) :: array
-    real(8),dimension(:)     :: bath_
-    character(len=1)         :: type
-    logical                  :: check
-    type(effective_bath)     :: dmft_bath_
+  !PURPOSE  : Create bath mask
+  !+-------------------------------------------------------------------+
+  function Hreplica_mask(wdiag,uplo) result(Hmask)
+    logical,optional                         :: wdiag,uplo
+    logical                                  :: wdiag_,uplo_
+    real(8),dimension(Nspin,Nspin,Norb,Norb) :: Hloc
+    logical,dimension(Nspin,Nspin,Norb,Norb) :: Hmask
+    integer                                  :: iorb,jorb,ispin,jspin,io,jo
     !
-    check= check_bath_dimension(bath_)
-    if(.not.check)stop "get_component_bath error: wrong bath dimensions"
-    call allocate_dmft_bath(dmft_bath_)
-    call set_dmft_bath(bath_,dmft_bath_)
-    call assert_bath_component_size(array,type,"get_bath_component","Array")
-    call check_bath_component(type)
-    select case(type)
-    case('e')
-       Array = dmft_bath_%e(:,:,:)
-    case('v')
-       Array = dmft_bath_%v(:,:,:)
-    case('l')
-       do ibath=1,size(dmft_bath_%item)
-          do isym=1,dmft_bath_%Nbasis
-             Array(1,isym,ibath) = dmft_bath_%item(ibath)%lambda(isym)
+    wdiag_=.false.;if(present(wdiag))wdiag_=wdiag
+    uplo_ =.false.;if(present(uplo))  uplo_=uplo
+    !
+    Hloc = Hreplica_build(Hreplica_lambda)
+    Hmask=.false.
+    where(abs(Hloc)>1d-6)Hmask=.true.
+    !
+    !
+    if(wdiag_)then
+       do ispin=1,Nspin
+          do iorb=1,Norb
+             Hmask(ispin,ispin,iorb,iorb)=.true.
           enddo
        enddo
-    end select
-    call deallocate_dmft_bath(dmft_bath_)
-  end subroutine get_bath_component
-
-
-  !+-----------------------------------------------------------------------------+!
-  !PURPOSE: Set a specified itype,ispin,iorb component of the user bath.
-  !+-----------------------------------------------------------------------------+!
-  subroutine set_bath_component(array,bath_,type)
-    real(8),dimension(:,:,:) :: array
-    real(8),dimension(:)     :: bath_
-    character(len=1)         :: type
-    logical                  :: check
-    type(effective_bath)     :: dmft_bath_
+    endif
     !
-    check= check_bath_dimension(bath_)
-    if(.not.check)stop "set_component_bath error: wrong bath dimensions"
-    call allocate_dmft_bath(dmft_bath_)
-    call set_dmft_bath(bath_,dmft_bath_)
-    call assert_bath_component_size(array,type,"set_bath_component","Array")
-    call check_bath_component(type)
-    select case(type)
-    case('e')
-       dmft_bath_%e(:,:,:) = Array 
-    case('v')
-       dmft_bath_%v(:,:,:) = Array
-    case('l')
-       do ibath=1,size(dmft_bath_%item)
-          do isym=1,dmft_bath_%Nbasis
-             dmft_bath_%item(ibath)%lambda(isym) = Array(1,isym,ibath)
+    if(uplo_)then
+       do ispin=1,Nspin
+          do jspin=1,Nspin
+             do iorb=1,Norb
+                do jorb=1,Norb
+                   io = index_stride_so(ispin,iorb)
+                   jo = index_stride_so(jspin,jorb)
+                   if(io>jo)Hmask(ispin,jspin,iorb,jorb)=.false.
+                enddo
+             enddo
           enddo
        enddo
-    end select
-    call get_dmft_bath(dmft_bath_,bath_)
-    call deallocate_dmft_bath(dmft_bath_)
-  end subroutine set_bath_component
-
-
-
-  !+-----------------------------------------------------------------------------+!
-  !PURPOSE: Copy a specified component of IN bath to the OUT bath.
-  !+-----------------------------------------------------------------------------+!
-  subroutine copy_bath_component(bathIN,bathOUT,type)
-    real(8),dimension(:)     :: bathIN,bathOUT
-    character(len=1)         :: type
-    logical                  :: check
-    type(effective_bath)     :: dIN,dOUT
+    endif
     !
-    check= check_bath_dimension(bathIN)
-    if(.not.check)stop "copy_component_bath error: wrong bath dimensions IN"
-    check= check_bath_dimension(bathOUT)
-    if(.not.check)stop "copy_component_bath error: wrong bath dimensions OUT"
-    call allocate_dmft_bath(dIN)
-    call allocate_dmft_bath(dOUT)
-    call set_dmft_bath(bathIN,dIN)
-    call set_dmft_bath(bathOUT,dOUT)
-    call check_bath_component(type)
-    select case(type)
-    case('e')
-       dOUT%e(:,:,:)  = dIN%e(:,:,:)
-    case('v')
-       dOUT%v(:,:,:)  = dIN%v(:,:,:)
-    case('l')
-       do ibath=1,size(dOUT%item)
-          do isym=1,dOUT%Nbasis
-             dOUT%item(ibath)%lambda(isym) = dIN%item(ibath)%lambda(isym)
-          enddo
-       enddo
-    end select
-    call get_dmft_bath(dOUT,bathOUT)
-    call deallocate_dmft_bath(dIN)
-    call deallocate_dmft_bath(dOUT)
-  end subroutine copy_bath_component
-
-
-
-
-
-
-
-
-
-
-
-
-
+  end function Hreplica_mask
 
 
 
@@ -1026,7 +1180,7 @@ contains
     integer              :: i,Nsym
     integer              :: io,jo,iorb,ispin,isym
     real(8)              :: hybr_aux
-    complex(8)           :: ho(Nspin*Norb,Nspin*Norb)
+    real(8)              :: ho(Nspin*Norb,Nspin*Norb)
     character(len=64)    :: string_fmt,string_fmt_first
     !
 #ifdef _DEBUG
@@ -1064,7 +1218,7 @@ contains
        !
     case ('replica')
        !
-       string_fmt      ="("//str(Nspin*Norb)//"(A1,F5.2,A1,F5.2,A1,2x))" 
+       string_fmt      ="("//str(Nspin*Norb)//"(A1,F5.2,2x))" 
        !
        write(unit_,"(90(A21,1X))")"#V_i",("Lambda_i"//reg(txtfy(io)),io=1,dmft_bath_%Nbasis)
        write(unit_,"(I3)")dmft_bath_%Nbasis
@@ -1078,8 +1232,7 @@ contains
           do isym=1,size(Hreplica_basis)
              Ho = nn2so_reshape(Hreplica_basis(isym)%O,nspin,norb)
              do io=1,Nspin*Norb
-                write(unit,string_fmt)&
-                     ('(',dreal(Ho(io,jo)),',',dimag(Ho(io,jo)),')',jo =1,Nspin*Norb)
+                write(unit,string_fmt)(Ho(io,jo),jo =1,Nspin*Norb)
              enddo
              write(unit,*)""
           enddo
@@ -1277,212 +1430,6 @@ contains
 
 
 
-  !##################################################################
-  !
-  !     H_REPLICA ROUTINES:
-  !
-  !##################################################################
-  !-------------------------------------------------------------------!
-  ! PURPOSE: INITIALIZE INTERNAL Hreplica STRUCTURES
-  !-------------------------------------------------------------------!
-  !allocate GLOBAL basis for H (used for impHloc and bath) and vectors coefficient
-  subroutine allocate_hreplica(N)
-    integer          :: N
-    integer          :: isym
-    !
-    if(allocated(Hreplica_basis))deallocate(Hreplica_basis)
-    if(allocated(Hreplica_lambda))deallocate(Hreplica_lambda)
-    !
-    allocate(Hreplica_basis(N))
-    allocate(Hreplica_lambda(N))
-    do isym=1,N
-       allocate(Hreplica_basis(isym)%O(Nspin,Nspin,Norb,Norb))
-       Hreplica_basis(isym)%O=0d0
-       Hreplica_lambda(isym)=0d0
-    enddo
-    Hreplica_status=.true.
-  end subroutine allocate_hreplica
-
-
-  !deallocate GLOBAL basis for H (used for impHloc and bath) and vectors coefficient
-  subroutine deallocate_hreplica()
-    integer              :: isym
-    !
-    do isym=1,size(Hreplica_basis)
-       deallocate(Hreplica_basis(isym)%O)
-    enddo
-    deallocate(Hreplica_basis)
-    deallocate(Hreplica_lambda)
-    Hreplica_status=.false.
-  end subroutine deallocate_hreplica
-
-
-  !+------------------------------------------------------------------+
-  !PURPOSE  : Set Hreplica from user defined Hloc
-  !1: [Nspin,Nspin,Norb,Norb]
-  !2: [Nspin*Norb,Nspin*Norb]
-  !+------------------------------------------------------------------+
-  subroutine init_Hreplica_direct_nn(Hloc)
-    integer                                     :: ispin,jspin,iorb,jorb,counter,io,jo,Nsym
-    complex(8),dimension(Nspin,Nspin,Norb,Norb) :: Hloc
-    logical(8),dimension(Nspin,Nspin,Norb,Norb) :: Hmask
-    !
-    Hmask=.false.
-    !
-    counter=0
-    do ispin=1,Nspin
-       do jspin=1,Nspin
-          do iorb=1,Norb
-             do jorb=1,Norb
-                io=index_stride_so(ispin,iorb)
-                jo=index_stride_so(jspin,jorb)
-                if(io > jo )cycle
-                if(Hloc(ispin,jspin,iorb,jorb)/=zero)counter=counter+1
-             enddo
-          enddo
-       enddo
-    enddo
-    !
-    call allocate_hreplica(counter)
-    !
-    counter=0
-    do ispin=1,Nspin
-       do jspin=1,Nspin
-          do iorb=1,Norb
-             do jorb=1,Norb
-                io=index_stride_so(ispin,iorb)
-                jo=index_stride_so(jspin,jorb)
-                if(io > jo )cycle
-                if(Hloc(ispin,jspin,iorb,jorb)/=zero)then
-                   counter=counter+1
-                   Hreplica_basis(counter)%O(ispin,jspin,iorb,jorb)=1d0
-                   Hreplica_basis(counter)%O(ispin,jspin,jorb,iorb)=1d0
-                   Hreplica_lambda(counter)=Hloc(ispin,ispin,iorb,jorb)
-                endif
-             enddo
-          enddo
-       enddo
-    enddo
-    !
-  end subroutine init_Hreplica_direct_nn
-
-  subroutine init_Hreplica_direct_so(Hloc)
-    complex(8),dimension(Nspin*Norb,Nspin*Norb) :: Hloc
-    call init_Hreplica_direct_nn(so2nn_reshape(Hloc,Nspin,Norb))
-  end subroutine init_Hreplica_direct_so
-
-
-  subroutine init_Hreplica_symmetries_site(Hvec,lambdavec)
-    complex(8),dimension(:,:,:,:,:) :: Hvec
-    real(8),dimension(:)            :: lambdavec
-    integer                         :: isym,N
-    !
-    N=size(lambdavec)
-    call assert_shape(Hvec,[Nspin,Nspin,Norb,Norb,N],"init_Hreplica_symmetries","Hvec")
-    !
-    call allocate_hreplica(N)
-    !
-    do isym=1,N
-       Hreplica_lambda(isym)  = lambdavec(isym)
-       Hreplica_basis(isym)%O = Hvec(:,:,:,:,isym)
-    enddo
-    !
-    if(ed_verbose>2)call print_hloc(Hreplica_build(Hreplica_lambda))
-  end subroutine init_Hreplica_symmetries_site
-
-
-
-  subroutine init_Hreplica_symmetries_lattice(Hvec,lambdavec)
-    complex(8),dimension(:,:,:,:,:) :: Hvec
-    real(8),dimension(:,:)          :: lambdavec ![Nlat,Nsym]
-    integer                         :: isym,ilat,N,Nlat
-    !
-    Nlat=size(lambdavec,1)
-    N   =size(lambdavec,2)
-    call assert_shape(Hvec,[Nspin,Nspin,Norb,Norb,N],"init_Hreplica_symmetries","Hvec")
-    !
-    if(allocated(Hreplica_lambda_ineq))deallocate(Hreplica_lambda_ineq)
-    allocate(Hreplica_lambda_ineq(Nlat,N))
-    call allocate_hreplica(N)
-    !
-    do isym=1,N
-       Hreplica_lambda_ineq(:,isym)  = lambdavec(:,isym)
-       Hreplica_basis(isym)%O = Hvec(:,:,:,:,isym)
-    enddo
-    !
-    if(ed_verbose>2)then
-       do ilat=1,Nlat
-          call print_hloc(Hreplica_build(Hreplica_lambda_ineq(ilat,:)))
-       enddo
-    endif
-  end subroutine init_Hreplica_symmetries_lattice
-
-
-  subroutine Hreplica_site(site)
-    integer :: site
-    if(site<1.OR.site>size(Hreplica_lambda_ineq,1))stop "ERROR Hreplica_site: site not in [1,Nlat]"
-    if(.not.allocated(Hreplica_lambda_ineq))stop "ERROR Hreplica_site: Hreplica_lambda_ineq not allocated"
-    Hreplica_lambda(:)  = Hreplica_lambda_ineq(site,:)
-  end subroutine Hreplica_site
-
-
-  !reconstruct [Nspin,Nspin,Norb,Norb] hamiltonian from basis expansion given [lambda]
-  function Hreplica_build(lambdavec) result(H)
-    real(8),dimension(:)                        :: lambdavec
-    integer                                     :: isym
-    complex(8),dimension(Nspin,Nspin,Norb,Norb) :: H
-    !
-    if(.not.Hreplica_status)STOP "ERROR Hreplica_build: Hreplica_basis is not setup"
-    if(size(lambdavec)/=size(Hreplica_basis)) STOP "ERROR Hreplica_build: Wrong coefficient vector size"
-    H=zero
-    do isym=1,size(lambdavec)
-       H=H+lambdavec(isym)*Hreplica_basis(isym)%O
-    enddo
-  end function Hreplica_build
-
-
-
-  !+-------------------------------------------------------------------+
-  !PURPOSE  : Create bath mask
-  !+-------------------------------------------------------------------+
-  function Hreplica_mask(wdiag,uplo) result(Hmask)
-    logical,optional                            :: wdiag,uplo
-    logical                                     :: wdiag_,uplo_
-    complex(8),dimension(Nspin,Nspin,Norb,Norb) :: Hloc
-    logical,dimension(Nspin,Nspin,Norb,Norb)    :: Hmask
-    integer                                     :: iorb,jorb,ispin,jspin,io,jo
-    !
-    wdiag_=.false.;if(present(wdiag))wdiag_=wdiag
-    uplo_ =.false.;if(present(uplo))  uplo_=uplo
-    !
-    Hloc = Hreplica_build(Hreplica_lambda)
-    Hmask=.false.
-    where(abs(Hloc)>1d-6)Hmask=.true.
-    !
-    !
-    if(wdiag_)then
-       do ispin=1,Nspin
-          do iorb=1,Norb
-             Hmask(ispin,ispin,iorb,iorb)=.true.
-          enddo
-       enddo
-    endif
-    !
-    if(uplo_)then
-       do ispin=1,Nspin
-          do jspin=1,Nspin
-             do iorb=1,Norb
-                do jorb=1,Norb
-                   io = index_stride_so(ispin,iorb)
-                   jo = index_stride_so(jspin,jorb)
-                   if(io>jo)Hmask(ispin,jspin,iorb,jorb)=.false.
-                enddo
-             enddo
-          enddo
-       enddo
-    endif
-    !
-  end function Hreplica_mask
 
 
 

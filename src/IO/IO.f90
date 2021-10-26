@@ -324,8 +324,8 @@ contains
     call allocate_grids()
     !
     !Print the impurity functions:
-    call splot("impDph_iw.ed"   ,vm,impDmats_ph(:))
-    call splot("impDph_realw.ed",vr,impDreal_ph(:))
+    call splot("impDph_iw.ed"   ,vm,impDmats(:))
+    call splot("impDph_realw.ed",vr,impDreal(:))
     !
     call deallocate_grids()
     !

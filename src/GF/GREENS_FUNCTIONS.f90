@@ -31,17 +31,17 @@ contains
     !
     call allocate_grids
     !
-    impGmats=zero
-    impGreal=zero
+    impGmats = zero
+    impGreal = zero
     !
     impSmats = zero
     impSreal = zero
     !
-    impG0mats=zero
-    impG0real=zero
+    impG0mats= zero
+    impG0real= zero
     !
-    impDmats_ph=zero
-    impDreal_ph=zero
+    impDmats = zero
+    impDreal = zero
     !
     write(LOGfile,"(A)")"Get impurity Greens functions:"
     call build_gf_normal()

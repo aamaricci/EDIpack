@@ -50,38 +50,23 @@ Lpos       = edi2py.ed_input_vars.lpos
 
 
 
-#FROM ED_HLOC_DECOMPOSITION
-def set_hloc(hloc,lam=None):
-    if lam is None:
-        ln=len(np.shape(hloc))
-        if(ln==4):
-            edi2py.set_hloc_nn(hloc)
-        elif(ln==2):
-            edi2py.set_hloc_so(hloc)
-        else:
-            raise
-        ValueError('shape(Hloc) /= [Nspin,Nspin,Norb,Norb] or [Nspin*Norb,Nspin*Norb]')
-    else:
-        edi2py.set_hloc_symm(hloc,lam)
-    return;
-
-
-
 
 #FROM ED_BATH:
-def get_bath_dimension(hloc=None):    
-    if not hloc:
-        Nb = edi2py.get_bath_dimension_direct()
-    else:
-        assert isinstance(hloc, complex), 'type(hloc)/=complex'
-        DimHloc=len(np.shape(hloc))
-        if(ln==5):
-            Nb = edi2py.get_bath_dimension_symmetries(hloc)
-        else:
-            raise ValueError('Dim(Hloc) /= [Nsym,Nspin,Nspin,Norb,Norb]')
+def get_bath_dimension():    
+    # if not hloc:
+    #     Nb = edi2py.get_bath_dimension_direct()
+    # else:
+    #     assert isinstance(hloc, complex), 'type(hloc)/=complex'
+    #     DimHloc=len(np.shape(hloc))
+    #     if(ln==5):
+    #         Nb = edi2py.get_bath_dimension_symmetries(hloc)
+    #     else:
+    #         raise ValueError('Dim(Hloc) /= [Nsym,Nspin,Nspin,Norb,Norb]')
+    Nb = edi2py.get_bath_dimension()
     return Nb;
 
 # missing interface in edi2py:
+# set_Hreplica(Hloc_nnnn,Hloc_nn,[Hvec,lvec],[Hvec,lvec_ineq])
 # get_bath_component_dimension
 # get_bath_component
 # set_bath_component
@@ -263,18 +248,17 @@ def get_double(arg):
 
 
 #FROM ED_BATH_FIT
-def chi2_fitgf(func,bath,hloc,ispin=1,iorb=None):
+def chi2_fitgf(func,bath,hloc=None,ispin=1,iorb=None):
     DimArg=len(np.shape(bath))
     if(DimArg==1):                        #single site(isite,iorb)
         if iorb is None:
-            edi2py.chi2_fitgf_site(func,bath,hloc,ispin)
+            edi2py.chi2_fitgf_site(func,bath,ispin)
         else:
-            edi2py.chi2_fitgf_site(func,bath,hloc,ispin,iorb)        
+            edi2py.chi2_fitgf_site(func,bath,ispin,iorb)        
     elif(DimArg==2):                      #ineq sites(hloc)
-        if iorb is None:
-            edi2py.chi2_fitgf_ineq(func,bath,hloc,ispin)
-        else:
-            edi2py.chi2_fitgf_ineq(func,bath,hloc,ispin,iorb)        
+        if hloc is None:
+            raise ValueError('chi2_fitgf: missing required Hloc as argument')
+        edi2py.chi2_fitgf_ineq(func,bath,hloc,ispin)
     else:
         raise ValueError('Dim(bath) /= [{Nlat},Nb] in Chi2_FitGf')
     return bath;
@@ -283,22 +267,22 @@ def chi2_fitgf(func,bath,hloc,ispin=1,iorb=None):
 
 
 #FROM ED_MAIN:
-def init_solver(bath,hloc):
+def init_solver(bath):
     DimArg=len(np.shape(bath))
     if(DimArg==1):
-        edi2py.init_solver_site(bath,hloc)
+        edi2py.init_solver_site(bath)
     elif(DimArg==2):
-        edi2py.init_solver_ineq(bath,hloc)
+        edi2py.init_solver_ineq(bath)
     else:
         raise ValueError('Dim(Bath) /= [{Nlat},Nb]')
     return ;
 
-def solve(bath,hloc,sflag=True):
+def solve(bath,hloc,sflag=True,mpi_lanc=True):
     DimArg=len(np.shape(bath))
     if(DimArg==1):
         edi2py.solve_site(bath,hloc,sflag)
     elif(DimArg==2):
-        edi2py.solve_ineq(bath,hloc)
+        edi2py.solve_ineq(bath,hloc,mpi_lanc)
     else:
         raise ValueError('Dim(Bath) /= [{Nlat},Nb]')
     return ;

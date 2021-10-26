@@ -30,7 +30,6 @@ MODULE ED_AUX_FUNX
      module procedure c_nn2nso
   end interface nn2so_reshape
 
-  
   interface ed_set_suffix
      module procedure :: ed_set_suffix_i
      module procedure :: ed_set_suffix_d
@@ -417,6 +416,9 @@ contains
     return
   end subroutine Allgather_vector_MPI
 #endif
+
+
+
 
 
 

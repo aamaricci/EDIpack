@@ -404,8 +404,9 @@ contains
     complex(8),dimension(Nspin,Nspin,Norb,Norb,Ldelta) :: Delta
     integer                                            :: ispin,jspin,iorb,jorb,ibath
     integer                                            :: i,stride
-    complex(8),dimension(Nspin*Norb,Nspin*Norb)        :: Haux,Htmp
     complex(8),dimension(Nspin,Nspin,Norb,Norb)        :: invH_knn
+    real(8),dimension(Nspin*Norb,Nspin*Norb)           :: Htmp
+    complex(8),dimension(Nspin*Norb,Nspin*Norb)        :: Haux
     real(8),dimension(Nbath)                           :: dummy_Vbath
     type(nsymm_vector),dimension(Nbath)                :: dummy_lambda
     !
@@ -422,7 +423,7 @@ contains
     !
     Delta=zero
     do ibath=1,Nbath
-       invH_knn = Hreplica_build(dummy_lambda(ibath)%element)
+       invH_knn = dcmplx(Hreplica_build(dummy_lambda(ibath)%element),0d0)
        Htmp     = nn2so_reshape( invH_knn,Nspin,Norb)
        do i=1,Ldelta
           Haux     = zeye(Nspin*Norb)*xi*Xdelta(i) - Htmp
@@ -459,7 +460,8 @@ contains
     complex(8),dimension(Nspin,Nspin,Norb,Norb,Ldelta,size(a)) :: dDelta
     integer                                                   :: ispin,iorb,jorb,ibath
     integer                                                   :: i,k,ik,l,io,counter
-    complex(8),dimension(Nspin*Norb,Nspin*Norb)               :: H_reconstructed,Htmp,Hbasis_so
+    complex(8),dimension(Nspin*Norb,Nspin*Norb)               :: H_reconstructed,Htmp
+    complex(8),dimension(Nspin*Norb,Nspin*Norb)               :: Hbasis_so
     complex(8),dimension(Nspin*Norb,Nspin*Norb,Ldelta)        :: Haux
     complex(8),dimension(Nspin,Nspin,Norb,Norb,Ldelta)        :: invH_knn
     real(8),dimension(Nbath)                                  :: dummy_Vbath
@@ -480,7 +482,7 @@ contains
     dDelta=zero
     counter=0
     do ibath=1,Nbath
-       H_reconstructed= nn2so_reshape( Hreplica_build(dummy_lambda(ibath)%element) ,Nspin,Norb)
+       H_reconstructed= nn2so_reshape( dcmplx(Hreplica_build(dummy_lambda(ibath)%element),0d0) ,Nspin,Norb)
        do i=1,Ldelta
           Haux(:,:,i) = zeye(Nspin*Norb)*xi*Xdelta(i) - H_reconstructed
           call inv(Haux(:,:,i))

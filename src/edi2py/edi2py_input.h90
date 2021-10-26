@@ -1,13 +1,7 @@
 !ED_INPUT_VARS:
 subroutine read_input(INPUTunit)
   USE EDIPACK, only: ed_read_input
-  USE SF_MPI
-  USE MPI
   implicit none
   character(len=*),intent(in) :: INPUTunit
-  if(check_MPI())then
-     call ed_read_input(trim(INPUTunit),MPI_COMM_WORLD)
-  else
-     call ed_read_input(trim(INPUTunit))
-  endif
+  call ed_read_input(trim(INPUTunit))
 end subroutine read_input

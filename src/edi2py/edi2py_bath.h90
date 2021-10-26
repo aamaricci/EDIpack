@@ -1,24 +1,62 @@
 !ED_BATH:
-!"overload" direct/symmetries
-subroutine get_bath_dimension_direct(Nb)
+subroutine get_bath_dimension(Nb)
   USE EDIPACK, only: ed_get_bath_dimension
   implicit none
-  integer,intent(out)                      :: Nb
+  integer,intent(out) :: Nb
   Nb=ed_get_bath_dimension()
-end subroutine get_bath_dimension_direct
-!
-subroutine get_bath_dimension_symmetries(Nb,Hloc)
-  USE EDIPACK, only: ed_get_bath_dimension
+end subroutine get_bath_dimension
+
+
+
+!H_REPLICA SETUP
+subroutine init_Hreplica_direct_nn(Hloc)
+  USE EDIPACK, only: ed_set_Hreplica,Norb,Nspin
+  USE SCIFOR, only: assert_shape
   implicit none
-  complex(8),dimension(:,:,:,:,:),intent(in) :: Hloc    
-  integer,intent(out)                        :: Nb
-  Nb=ed_get_bath_dimension(Hloc)
-end subroutine get_bath_dimension_symmetries
+  real(8),dimension(:,:,:,:),intent(inout) :: Hloc
+  call assert_shape(hloc,[Nspin,Nspin,Norb,Norb],"init_Hreplica_direct_nn","hloc")  
+  call ed_set_Hreplica(hloc)
+end subroutine init_Hreplica_direct_nn
+
+subroutine init_Hreplica_direct_so(Hloc)
+  USE EDIPACK, only: ed_set_Hreplica,Norb,Nspin
+  USE SCIFOR, only: assert_shape
+  implicit none
+  real(8),dimension(:,:),intent(inout) :: Hloc
+  call assert_shape(hloc,[Nspin*Norb,Nspin*Norb],"init_Hreplica_direct_so","hloc")  
+  call ed_set_Hreplica(hloc)
+end subroutine init_Hreplica_direct_so
+
+subroutine init_Hreplica_symmetries_site(Hvec,lambdavec)
+  USE EDIPACK, only: ed_set_Hreplica,Norb,Nspin
+  USE SCIFOR, only: assert_shape
+  implicit none
+  real(8),dimension(:,:,:,:,:),intent(inout) :: Hvec
+  real(8),dimension(:),intent(inout)         :: lambdavec
+  integer                                    :: Nsym
+  Nsym = size(lambdavec)
+  call assert_shape(Hvec,[Nspin,Nspin,Norb,Norb,Nsym],"init_Hreplica_symmetries_site","Hvec")  
+  call ed_set_Hreplica(Hvec,lambdavec)
+end subroutine init_Hreplica_symmetries_site
+
+subroutine init_Hreplica_symmetries_lattice(Hvec,lambdavec)
+  USE EDIPACK, only: ed_set_Hreplica,Norb,Nspin
+  USE SCIFOR, only: assert_shape
+  implicit none
+  real(8),dimension(:,:,:,:,:),intent(inout) :: Hvec
+  real(8),dimension(:,:),intent(inout)       :: lambdavec
+  integer                                    :: Nsym
+  Nsym = size(lambdavec,2)
+  call assert_shape(Hvec,[Nspin,Nspin,Norb,Norb,Nsym],"init_Hreplica_symmetries_lattice","Hvec")  
+  call ed_set_Hreplica(Hvec,lambdavec)
+end subroutine init_Hreplica_symmetries_lattice
 
 
 
 
 
+
+!BATH COMPONENT ROUTINES
 subroutine get_bath_component_dimension(type,ndim)
   USE EDIPACK, only: ed_get_bath_component_dimension
   implicit none
@@ -175,3 +213,9 @@ subroutine ph_trans_bath_ineq(bath,save)
   logical,intent(in)        :: save
   call ed_ph_trans_bath(bath,save)
 end subroutine ph_trans_bath_ineq
+
+
+
+
+
+

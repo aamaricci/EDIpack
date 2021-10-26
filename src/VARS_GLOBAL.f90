@@ -32,21 +32,6 @@ MODULE ED_VARS_GLOBAL
 
 
 
-  !-------------------- CUSTOM OBSERVABLE STRUCTURE ----------------------!
-  type observable
-     complex(8),dimension(:,:,:),allocatable :: sij ![Nlso][Nlso][Nk]
-     character(len=32)                       :: o_name
-     real(8)                                 :: o_value
-  end type observable
-
-  type custom_observables
-     type(observable),dimension(:),allocatable               :: item     ![:]
-     complex(8),dimension(:,:,:),allocatable                 :: Hk       ![Nlso][Nlso][Nk]
-     integer                                                 :: N_asked
-     integer                                                 :: N_filled
-     logical                                                 :: init=.false.
-  end type custom_observables
-
 
 
 
@@ -74,64 +59,6 @@ MODULE ED_VARS_GLOBAL
      integer                                     :: Nlanc
      logical                                     :: status=.false.
   end type sector
-
-
-
-  !-------------- GMATRIX FOR FAST EVALUATION OF GF ------------------!
-  !The contributions to the GF Kallen-Lehmann sum are stored as
-  !GF_{ab,sr}%state%channel%{w,e}.
-  !A couple of weight,poles {w,e} is stored for each *channel, corresponding to c,cdg or any
-  !their combination thereof as well as for any state |n> of the spectrum such that
-  !GF(z) = sum w/z-e
-  type GFspectrum
-     real(8),dimension(:),allocatable       :: weight
-     real(8),dimension(:),allocatable       :: poles
-  end type GFspectrum
-
-  !N_channel = c,cdag,c \pm cdag, c \pm i*cdag, ...
-  type GFchannel
-     type(GFspectrum),dimension(:),allocatable :: channel 
-  end type GFchannel
-
-  !state_list%size = # of state in the spectrum 
-  type GFmatrix
-     type(GFchannel),dimension(:),allocatable  :: state
-     logical                                   :: status=.false.
-  end type GFmatrix
-
-
-  ! interface allocate_GFmatrix
-  !    module procedure :: allocate_GFmatrix_Nstate
-  !    module procedure :: allocate_GFmatrix_Nchan
-  !    module procedure :: allocate_GFmatrix_Nexc
-  ! end interface allocate_GFmatrix
-
-
-  ! interface deallocate_GFmatrix
-  !    module procedure :: deallocate_GFmatrix_single
-  !    module procedure :: deallocate_GFmatrix_all1
-  !    module procedure :: deallocate_GFmatrix_all2
-  !    module procedure :: deallocate_GFmatrix_all3
-  !    module procedure :: deallocate_GFmatrix_all4
-  ! end interface deallocate_GFmatrix
-
-  ! interface write_GFmatrix
-  !    module procedure :: write_GFmatrix_single
-  !    module procedure :: write_GFmatrix_all1
-  !    module procedure :: write_GFmatrix_all2
-  !    module procedure :: write_GFmatrix_all3
-  !    module procedure :: write_GFmatrix_all4
-  ! end interface write_GFmatrix
-
-  ! interface read_GFmatrix
-  !    module procedure :: read_GFmatrix_single
-  !    module procedure :: read_GFmatrix_all1
-  !    module procedure :: read_GFmatrix_all2
-  !    module procedure :: read_GFmatrix_all3
-  !    module procedure :: read_GFmatrix_all4
-  ! end interface read_GFmatrix
-
-
 
 
 
@@ -179,11 +106,12 @@ MODULE ED_VARS_GLOBAL
   !=========================================================
   type(H_operator),dimension(:),allocatable          :: Hreplica_basis
   real(8),dimension(:),allocatable                   :: Hreplica_lambda
+  integer                                            :: Hreplica_Nsym=0
   logical                                            :: Hreplica_status=.false.
 
   !local part of the Hamiltonian
   !=========================================================
-  complex(8),dimension(:,:,:,:),allocatable          :: impHloc           !local hamiltonian
+  real(8),dimension(:,:,:,:),allocatable             :: impHloc           !local hamiltonian
 
   !Variables for DIAGONALIZATION
   !PRIVATE
@@ -221,8 +149,8 @@ MODULE ED_VARS_GLOBAL
   complex(8),allocatable,dimension(:,:,:,:,:)        :: impGreal
   complex(8),allocatable,dimension(:,:,:,:,:)        :: impG0mats
   complex(8),allocatable,dimension(:,:,:,:,:)        :: impG0real
-  complex(8),allocatable,dimension(:)                :: impDmats_ph
-  complex(8),allocatable,dimension(:)                :: impDreal_ph
+  complex(8),allocatable,dimension(:)                :: impDmats
+  complex(8),allocatable,dimension(:)                :: impDreal
 
   !Spin Susceptibilities
   !=========================================================
@@ -271,19 +199,13 @@ MODULE ED_VARS_GLOBAL
   real(8),dimension(:),allocatable                   :: wm,tau,wr,vm,vr
 
 
-  !Impurity operators
-  !PRIVATE (now public but accessible thru routine)
-  !=========================================================
-  ! complex(8),allocatable,dimension(:,:,:,:)          :: imp_density_matrix
-
 
 
   !--------------- LATTICE WRAP VARIABLES -----------------!
   complex(8),dimension(:,:,:,:,:,:),allocatable,save :: Smats_ineq,Sreal_ineq  ![Nlat,Nspin,Nspin,Norb,Norb,L]
   complex(8),dimension(:,:,:,:,:,:),allocatable,save :: Gmats_ineq,Greal_ineq
   complex(8),dimension(:,:,:,:,:,:),allocatable,save :: G0mats_ineq,G0real_ineq
-  complex(8),dimension(:,:),allocatable,save         :: Dmats_ph_ineq,Dreal_ph_ineq
-  ! complex(8),dimension(:,:,:,:,:),allocatable,save   :: imp_density_matrix_ineq
+  complex(8),dimension(:,:),allocatable,save         :: Dmats_ineq,Dreal_ineq
   real(8),dimension(:,:),allocatable,save            :: dens_ineq 
   real(8),dimension(:,:),allocatable,save            :: docc_ineq
   real(8),dimension(:,:),allocatable,save            :: mag_ineq
@@ -334,28 +256,35 @@ contains
 
 
 
-  !=========================================================
-  subroutine ed_set_MpiComm(comm)
+  !IF code is compiled with MPI support
+  !+  MPI is initialized:
+  !THEN this routine setup the internal communicator
+  !(inherited from MPI_COMM_WORLD) plus global variables
+  !ELSE it does nothing
+  !
+  !
+  subroutine ed_set_MpiComm()
 #ifdef _MPI
-    integer :: comm,ierr
-    ! call MPI_Comm_dup(Comm,MpiComm_Global,ierr)
-    ! call MPI_Comm_dup(Comm,MpiComm,ierr)
-    MpiComm_Global = comm
-    MpiComm        = comm
-    call Mpi_Comm_group(MpiComm_Global,MpiGroup_Global,ierr)
-    MpiStatus      = .true.
-    MpiSize        = get_Size_MPI(MpiComm_Global)
-    MpiRank        = get_Rank_MPI(MpiComm_Global)
-    MpiMaster      = get_Master_MPI(MpiComm_Global)
-#else
-    integer,optional :: comm
+    integer :: ierr
+    if(check_MPI())then
+       MpiComm_Global = MPI_COMM_WORLD
+       MpiComm        = MPI_COMM_WORLD
+       call Mpi_Comm_group(MpiComm_Global,MpiGroup_Global,ierr)
+       MpiStatus      = .true.
+       MpiSize        = get_Size_MPI(MpiComm_Global)
+       MpiRank        = get_Rank_MPI(MpiComm_Global)
+       MpiMaster      = get_Master_MPI(MpiComm_Global)
+    endif
 #endif
   end subroutine ed_set_MpiComm
 
+
+  !IF code is compiled with MPI support
+  !THEN this routine reset global variables to default values (SERIAL)
   subroutine ed_del_MpiComm()
 #ifdef _MPI    
-    MpiComm_Global = MPI_UNDEFINED
-    MpiComm        = MPI_UNDEFINED
+    MpiComm_Global = MPI_COMM_NULL
+    MpiComm        = MPI_COMM_NULL
     MpiGroup_Global= MPI_GROUP_NULL
     MpiStatus      = .false.
     MpiSize        = 1

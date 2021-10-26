@@ -34,7 +34,6 @@ MODULE EDIPACK
 
 
   USE ED_BATH, only:                                                    &
-       ed_set_Hreplica                 => set_Hreplica                 ,&
        ed_get_bath_dimension           => get_bath_dimension           ,&
        ed_get_bath_component_dimension => get_bath_component_dimension ,&
        ed_get_bath_component           => get_bath_component           ,&
@@ -45,7 +44,10 @@ MODULE EDIPACK
        ed_orb_equality_bath            => orb_equality_bath            ,&
        ed_ph_symmetrize_bath           => ph_symmetrize_bath           ,&
        ed_ph_trans_bath                => ph_trans_bath                ,&
-       ed_break_symmetry_bath          => break_symmetry_bath
+       ed_break_symmetry_bath          => break_symmetry_bath          ,&
+       ed_set_Hreplica                 => set_Hreplica
+
+  
 
   USE ED_AUX_FUNX, only:                        &
        ed_set_suffix                                                     , &
