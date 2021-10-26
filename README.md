@@ -71,7 +71,7 @@ adriano DOT amaricci @ gmail DOT com
 --
 
 ***COPYRIGHT & LICENSING***  
-Copyright  (c), Adriano Amaricci, Lorenzo Crippa, Alberto Scazzola, Giacomo Mazza, Luca de Medici, Massimo Capone.  
+Copyright  (c), Adriano Amaricci, Lorenzo Crippa, Alberto Scazzola, Francesco Petocchi, Giacomo Mazza, Luca de Medici, Massimo Capone.  
 All rights reserved. 
 
 This program is free software: you can redistribute it and/or modify
