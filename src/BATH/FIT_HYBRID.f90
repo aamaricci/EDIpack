@@ -34,7 +34,7 @@ contains
     check= check_bath_dimension(bath_)
     if(.not.check)stop "chi2_fitgf_hybrid_normal error: wrong bath dimensions"
     !
-    Ldelta = Lfit ; if(Ldelta>size(fg,3))Ldelta=size(fg,3)
+    Ldelta = cg_Lfit ; if(Ldelta>size(fg,3))Ldelta=size(fg,3)
     !
     allocate(getIorb(Norb*(Norb+1)/2),getJorb(Norb*(Norb+1)/2))
     corb=0

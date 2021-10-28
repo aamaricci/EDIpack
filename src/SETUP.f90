@@ -28,7 +28,7 @@ contains
 
   subroutine ed_checks_global
     !
-    if(Lfit>Lmats)Lfit=Lmats
+    if(cg_Lfit>Lmats)cg_Lfit=Lmats
     if(Nspin>2)stop "ED ERROR: Nspin > 2 is currently not supported"
     if(Norb>5)stop "ED ERROR: Norb > 5 is currently not supported"
     !

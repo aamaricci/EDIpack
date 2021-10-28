@@ -33,7 +33,7 @@ contains
     check= check_bath_dimension(bath_)
     if(.not.check)stop "chi2_fitgf_normal_normal error: wrong bath dimensions"
     !
-    Ldelta = Lfit ; if(Ldelta>size(fg,3))Ldelta=size(fg,3)
+    Ldelta = cg_Lfit ; if(Ldelta>size(fg,3))Ldelta=size(fg,3)
     !
     allocate(Gdelta(1,Ldelta))
     allocate(Xdelta(Ldelta))

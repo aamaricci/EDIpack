@@ -68,7 +68,7 @@ contains
        enddo
     enddo
     !
-    Ldelta = Lfit ; if(Ldelta>size(fg,5))Ldelta=size(fg,5)
+    Ldelta = cg_Lfit ; if(Ldelta>size(fg,5))Ldelta=size(fg,5)
     !
     allocate(Gdelta(totNso,Ldelta))
     allocate(Xdelta(Ldelta))

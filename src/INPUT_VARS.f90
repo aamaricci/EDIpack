@@ -69,6 +69,7 @@ MODULE ED_INPUT_VARS
   !
   character(len=5)     :: cg_Scheme           !fit scheme: delta (default), weiss for G0
   integer              :: cg_method           !fit routine type:0=CGnr (default), 1=minimize (old f77)
+  integer              :: cg_Lfit             !Number of Matsubara frequencies used in the \Chi2 fit
   integer              :: cg_grad             !gradient evaluation: 0=analytic, 1=numeric
   integer              :: cg_Niter            !Max number of iteration in the fit
   real(8)              :: cg_Ftol             !Tolerance in the cg fit
@@ -92,7 +93,7 @@ MODULE ED_INPUT_VARS
   !=========================================================
   integer              :: Lmats
   integer              :: Lreal
-  integer              :: Lfit
+
   integer              :: Ltau
   integer              :: Lpos
 
@@ -171,7 +172,7 @@ contains
     call parse_input_variable(Lmats,"LMATS",INPUTunit,default=4096,comment="Number of Matsubara frequencies.")
     call parse_input_variable(Lreal,"LREAL",INPUTunit,default=5000,comment="Number of real-axis frequencies.")
     call parse_input_variable(Ltau,"LTAU",INPUTunit,default=1024,comment="Number of imaginary time points.")
-    call parse_input_variable(Lfit,"LFIT",INPUTunit,default=1000,comment="Number of Matsubara frequencies used in the \Chi2 fit.")
+
     call parse_input_variable(Lpos,"LPOS",INPUTunit,default=100,comment="Number of points for the lattice PDF.")
     !
     call parse_input_variable(nread,"NREAD",INPUTunit,default=0.d0,comment="Objective density for fixed density calculations.")
@@ -207,6 +208,7 @@ contains
     !
     call parse_input_variable(cg_method,"CG_METHOD",INPUTunit,default=0,comment="Conjugate-Gradient method: 0=NR, 1=minimize.")
     call parse_input_variable(cg_grad,"CG_GRAD",INPUTunit,default=0,comment="Gradient evaluation method: 0=analytic (default), 1=numeric.")
+    call parse_input_variable(cg_Lfit,"cg_LFIT",INPUTunit,default=1000,comment="Number of Matsubara frequencies used in the \Chi2 fit.")
     call parse_input_variable(cg_ftol,"CG_FTOL",INPUTunit,default=0.00001d0,comment="Conjugate-Gradient tolerance.")
     call parse_input_variable(cg_stop,"CG_STOP",INPUTunit,default=0,comment="Conjugate-Gradient stopping condition: 0-3, 0=C1.AND.C2, 1=C1, 2=C2 with C1=|F_n-1 -F_n|<tol*(1+F_n), C2=||x_n-1 -x_n||<tol*(1+||x_n||).")
     call parse_input_variable(cg_niter,"CG_NITER",INPUTunit,default=500,comment="Max. number of Conjugate-Gradient iterations.")
