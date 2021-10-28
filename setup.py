@@ -28,7 +28,7 @@ ext1 = Extension(
 
 setup(
     name = "edipy",
-    version = "2.0.0",
+    version = "2.0.2",
     description = "EDIpack python API",
     author = "Adriano Amaricci",
     author_email = "amaricci@sissa.it",

@@ -242,7 +242,7 @@ contains
        call print_input()
        call save_input(INPUTunit)
        call scifor_version()
-       call code_version(version)
+       call code_version(version,"EDIPACK")
     endif
     !Act on the input variable only after printing.
     !In the new parser variables are hard-linked into the list:

@@ -31,7 +31,6 @@ MODULE ED_OBSERVABLES
   real(8)                            :: s2tot
   real(8)                            :: Egs
   real(8)                            :: Ei
-  real(8),dimension(:),allocatable   :: Prob
   real(8),dimension(:),allocatable   :: prob_ph
   real(8),dimension(:),allocatable   :: pdf_ph
   real(8),dimension(:,:),allocatable :: pdf_part
@@ -81,7 +80,6 @@ contains
     allocate(magz(Norb),sz2(Norb,Norb),n2(Norb,Norb))
     allocate(simp(Norb,Nspin),zimp(Norb,Nspin))
     allocate(exct_S0(Norb,Norb),exct_Tz(Norb,Norb))
-    allocate(Prob(3**Norb))
     allocate(prob_ph(DimPh))
     allocate(pdf_ph(Lpos))
     allocate(pdf_part(Lpos,3))
@@ -99,7 +97,6 @@ contains
     exct_tz = 0d0
     theta_upup = 0d0
     theta_dwdw = 0d0
-    Prob    = 0.d0
     prob_ph = 0.d0
     dens_ph = 0.d0
     pdf_ph  = 0.d0
@@ -134,12 +131,6 @@ contains
              sz = (nup-ndw)/2d0
              nt =  nup+ndw
              !
-             !Configuration probability
-             iprob=1
-             do iorb=1,Norb
-                iprob=iprob+nint(nt(iorb))*3**(iorb-1)
-             end do
-             Prob(iprob) = Prob(iprob) + gs_weight
              !
              !Evaluate averages of observables:
              do iorb=1,Norb
@@ -328,7 +319,7 @@ contains
     endif
 #endif
     !
-    deallocate(dens,docc,dens_up,dens_dw,magz,sz2,n2,Prob)
+    deallocate(dens,docc,dens_up,dens_dw,magz,sz2,n2)
     deallocate(exct_S0,exct_Tz)
     deallocate(simp,zimp,prob_ph,pdf_ph,pdf_part)
   end subroutine observables_impurity
@@ -711,10 +702,6 @@ contains
          dens_ph,w_ph
     close(unit)         
     !
-    unit = free_unit()
-    open(unit,file="Occupation_prob"//reg(ed_file_suffix)//".ed")
-    write(unit,"(125F15.9)")Uloc(1),Prob,sum(Prob)
-    close(unit)         
     !
     unit = free_unit()
     open(unit,file="Nph_probability"//reg(ed_file_suffix)//".ed")
