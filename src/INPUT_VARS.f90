@@ -53,7 +53,7 @@ MODULE ED_INPUT_VARS
   integer              :: ed_sectors_shift    !shift to the ed_sectors scan
   integer              :: ed_verbose          !
   real(8)              :: ed_offset_bath      !half-bandwidth for the bath initialization: flat in -hwband:hwband
-  real(8)              :: ed_hw_bath          !half-bandwidth for the bath initialization: flat in -hwband:hwband
+  real(8)              :: ed_hw_bath          !half-bandwidteh for the bath initialization: flat in -hwband:hwband
 
   !
   character(len=12)    :: lanc_method         !select the lanczos method to be used in the determination of the spectrum. ARPACK (default), LANCZOS (T=0 only) 
@@ -76,10 +76,7 @@ MODULE ED_INPUT_VARS
   integer              :: cg_stop             !fit stop condition:0-3, 0=C1.AND.C2, 1=C1, 2=C2 with C1=|F_n-1 -F_n|<tol*(1+F_n), C2=||x_n-1 -x_n||<tol*(1+||x_n||).
   integer              :: cg_Weight           !CGfit mode 0=1, 1=1/n , 2=1/w_n weight
   integer              :: cg_pow              !fit power for the calculation of the Chi distance function as |G0 - G0and|**cg_pow
-  logical              :: cg_minimize_ver     !flag to pick old (Krauth) or new (Lichtenstein) version of the minimize CG routine
-  real(8)              :: cg_minimize_hh      !unknown parameter used in the CG minimize procedure.  
   !
-  logical              :: finiteT             !flag for finite temperature calculation
   character(len=7)     :: bath_type           !flag to set bath type: normal (1bath/imp), hybrid(1bath)
   !
   real(8)              :: nread               !fixed density. if 0.d0 fixed chemical potential calculation.
@@ -99,7 +96,7 @@ MODULE ED_INPUT_VARS
 
   !LOG AND Hamiltonian UNITS
   !=========================================================
-  character(len=100)   :: Hfile,HLOCfile,SectorFile
+  character(len=100)   :: Hfile,SectorFile
   integer,save         :: LOGfile
 
   !THIS IS JUST A RELOCATED GLOBAL VARIABLE
@@ -215,12 +212,9 @@ contains
     call parse_input_variable(cg_weight,"CG_WEIGHT",INPUTunit,default=1,comment="Conjugate-Gradient weight form: 1=1.0, 2=1/n , 3=1/w_n.")
     call parse_input_variable(cg_scheme,"CG_SCHEME",INPUTunit,default='weiss',comment="Conjugate-Gradient fit scheme: delta or weiss.")
     call parse_input_variable(cg_pow,"CG_POW",INPUTunit,default=2,comment="Fit power for the calculation of the Chi distance function as 1/L*|G0 - G0and|**cg_pow ")
-    call parse_input_variable(cg_minimize_ver,"CG_MINIMIZE_VER",INPUTunit,default=.false.,comment="Flag to pick old/.false. (Krauth) or new/.true. (Lichtenstein) version of the minimize CG routine")
-    call parse_input_variable(cg_minimize_hh,"CG_MINIMIZE_HH",INPUTunit,default=1d-4,comment="Unknown parameter used in the CG minimize procedure.")
     !
     call parse_input_variable(SectorFile,"SectorFile",INPUTunit,default="sectors",comment="File where to retrieve/store the sectors contributing to the spectrum.")
     call parse_input_variable(Hfile,"Hfile",INPUTunit,default="hamiltonian",comment="File where to retrieve/store the bath parameters.")
-    call parse_input_variable(HLOCfile,"HLOCfile",INPUTunit,default="inputHLOC.in",comment="File read the input local H.")
     call parse_input_variable(LOGfile,"LOGFILE",INPUTunit,default=6,comment="LOG unit.")
 
 

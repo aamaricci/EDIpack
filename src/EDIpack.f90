@@ -28,7 +28,6 @@ MODULE EDIPACK
        Lreal         , &
        Lpos          , &
        Hfile         , &
-       HLOCfile      , &
        LOGfile       , &
        bath_type 
 
@@ -52,17 +51,13 @@ MODULE EDIPACK
   USE ED_AUX_FUNX, only:                        &
        ed_set_suffix                                                     , &
        ed_reset_suffix                                                   , &
-       ed_search_variable                                                , &
-       ed_search_chemical_potential     => search_chemical_potential 
-
+       ed_search_variable
 
   USE ED_IO, only:                              &
        ed_get_sigma_matsubara                 , &
        ed_get_sigma_realaxis                  , &
        ed_get_gimp_matsubara                  , &
        ed_get_gimp_realaxis                   , &
-       ed_get_delta_function                  , &
-       ed_get_g0and_function                  , &
        ed_get_dens                            , &
        ed_get_mag                             , &
        ed_get_docc                            , &

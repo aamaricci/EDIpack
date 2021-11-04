@@ -138,7 +138,8 @@ MODULE ED_VARS_GLOBAL
   real(8)                                            :: gs_energy
 
 
-
+  logical                                            :: finiteT             !flag for finite temperature calculation
+  
 
   !Impurity Green's function and Self-Energies: (Nspin,Nspin,Norb,Norb,:)
   !PRIVATE (now public but accessible thru routine)
@@ -223,6 +224,10 @@ MODULE ED_VARS_GLOBAL
   logical                                            :: offdiag_gf_flag=.false.
   ! character(len=200)                               :: ed_input_file=""
 
+
+
+  logical              :: cg_minimize_ver=.false.
+  real(8)              :: cg_minimize_hh=1d-4
 
   !This is the internal Mpi Communicator and variables.
   !=========================================================

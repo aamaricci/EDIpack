@@ -30,52 +30,52 @@ end subroutine ed_get_eimp_main
 
 
 
-subroutine ed_get_dens_lattice(y_ineq,Nlat)
-  integer                      :: Nlat
-  real(8),dimension(Nlat,Norb) :: y_ineq
+subroutine ed_get_dens_lattice(y_ineq,Nsites)
+  integer                      :: Nsites
+  real(8),dimension(Nsites,Norb) :: y_ineq
   y_ineq=0d0    
   if(allocated(dens_ineq))then
-     if(Nlat>size(dens_ineq,1)) stop "ed_get_dens error: required N_sites > evaluated N_sites"
+     if(Nsites>size(dens_ineq,1)) stop "ed_get_dens error: required N_sites > evaluated N_sites"
      y_ineq=dens_ineq
   end if
 end subroutine ed_get_dens_lattice
 
-subroutine ed_get_mag_lattice(y_ineq,Nlat)
-  integer                      :: Nlat
-  real(8),dimension(Nlat,Norb) :: y_ineq
+subroutine ed_get_mag_lattice(y_ineq,Nsites)
+  integer                      :: Nsites
+  real(8),dimension(Nsites,Norb) :: y_ineq
   y_ineq=0d0
   if(allocated(mag_ineq))then
-     if(Nlat>size(mag_ineq,1)) stop "ed_get_mag error: required N_sites > evaluated N_sites"
+     if(Nsites>size(mag_ineq,1)) stop "ed_get_mag error: required N_sites > evaluated N_sites"
      y_ineq=mag_ineq
   endif
 end subroutine ed_get_mag_lattice
 
-subroutine ed_get_docc_lattice(y_ineq,Nlat) 
-  integer                      :: Nlat
-  real(8),dimension(Nlat,Norb) :: y_ineq
+subroutine ed_get_docc_lattice(y_ineq,Nsites) 
+  integer                      :: Nsites
+  real(8),dimension(Nsites,Norb) :: y_ineq
   y_ineq=0d0
   if(allocated(docc_ineq))then
-     if(Nlat>size(docc_ineq,1)) stop "ed_get_docc error: required N_sites > evaluated N_sites"
+     if(Nsites>size(docc_ineq,1)) stop "ed_get_docc error: required N_sites > evaluated N_sites"
      y_ineq=docc_ineq
   endif
 end subroutine ed_get_docc_lattice
 
-subroutine ed_get_doubles_lattice(y_ineq,Nlat)
-  integer                      :: Nlat
-  real(8),dimension(Nlat,4)    :: y_ineq
+subroutine ed_get_doubles_lattice(y_ineq,Nsites)
+  integer                      :: Nsites
+  real(8),dimension(Nsites,4)    :: y_ineq
   y_ineq=0d0
   if(allocated(dd_ineq))then
-     if(Nlat>size(dd_ineq,1)) stop "ed_get_doubles error: required N_sites > evaluated N_sites"
+     if(Nsites>size(dd_ineq,1)) stop "ed_get_doubles error: required N_sites > evaluated N_sites"
      y_ineq=dd_ineq(:,:)
   endif
 end subroutine ed_get_doubles_lattice
 
-subroutine ed_get_eimp_lattice(y_ineq,Nlat)
-  integer                      :: Nlat
-  real(8),dimension(Nlat,4)    :: y_ineq
+subroutine ed_get_eimp_lattice(y_ineq,Nsites)
+  integer                      :: Nsites
+  real(8),dimension(Nsites,4)    :: y_ineq
   y_ineq=0d0
   if(allocated(e_ineq))then
-     if(Nlat>size(e_ineq,1)) stop "ed_get_eimp error: required N_sites > evaluated N_sites"
+     if(Nsites>size(e_ineq,1)) stop "ed_get_eimp error: required N_sites > evaluated N_sites"
      y_ineq=e_ineq
   endif
 end subroutine ed_get_eimp_lattice
