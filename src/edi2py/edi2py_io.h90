@@ -87,29 +87,6 @@ end subroutine get_gimp_realaxis_ineq
 
 
 
-subroutine get_delta_function(x,bath_,Delta)
-  USE EDIPACK, only: ed_get_delta_function,Nspin,Norb
-  USE SCIFOR, only: assert_shape
-  implicit none
-  complex(8),dimension(:),intent(in)          :: x
-  real(8),dimension(:),intent(in)             :: bath_
-  complex(8),dimension(:,:,:,:,:),intent(out) :: Delta
-  call assert_shape(delta,[Nspin,Nspin,Norb,Norb,size(x)],"get_delta_function","delta")
-  delta=ed_get_delta_function(x,bath_)
-end subroutine get_delta_function
-
-
-subroutine get_g0and_function(x,bath_,Delta)
-  USE EDIPACK, only: ed_get_g0and_function,Nspin,Norb
-  USE SCIFOR, only: assert_shape
-  implicit none
-  complex(8),dimension(:),intent(in)          :: x
-  real(8),dimension(:),intent(in)             :: bath_
-  complex(8),dimension(:,:,:,:,:),intent(out) :: Delta
-  call assert_shape(delta,[Nspin,Nspin,Norb,Norb,size(x)],"get_g0and_function","delta")
-  delta=ed_get_g0and_function(x,bath_)
-end subroutine get_g0and_function
-
 
 
 

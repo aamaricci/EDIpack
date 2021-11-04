@@ -56,40 +56,6 @@ end subroutine init_Hreplica_symmetries_lattice
 
 
 
-!BATH COMPONENT ROUTINES
-subroutine get_bath_component_dimension(type,ndim)
-  USE EDIPACK, only: ed_get_bath_component_dimension
-  implicit none
-  character(len=1),intent(in) :: type
-  integer,intent(out)         :: Ndim(3)
-  Ndim = ed_get_bath_component_dimension(type)
-end subroutine get_bath_component_dimension
-
-subroutine get_bath_component(array,bath_,type)
-  USE EDIPACK, only: ed_get_bath_component
-  implicit none
-  real(8),dimension(:,:,:),intent(inout) :: array
-  real(8),dimension(:),intent(in)        :: bath_
-  character(len=1),intent(in)            :: type
-  call ed_get_bath_component(array,bath_,type)
-end subroutine get_bath_component
-
-subroutine set_bath_component(array,bath_,type)
-  USE EDIPACK, only: ed_set_bath_component
-  implicit none
-  real(8),dimension(:,:,:),intent(out)   :: array
-  real(8),dimension(:),intent(in)        :: bath_
-  character(len=1),intent(in)            :: type
-  call ed_set_bath_component(array,bath_,type)
-end subroutine set_bath_component
-
-subroutine copy_bath_componen(bathIN,bathOUT,type)
-  USE EDIPACK, only: ed_copy_bath_component
-  implicit none
-  real(8),dimension(:),intent(inout) :: bathIN
-  character(len=1),intent(in)        :: type
-  real(8),dimension(:),intent(out)   :: bathOUT
-end subroutine copy_bath_componen
 
 
 
@@ -219,3 +185,37 @@ end subroutine ph_trans_bath_ineq
 
 
 
+!BATH COMPONENT ROUTINES
+subroutine get_bath_component_dimension(type,ndim)
+  USE EDIPACK, only: ed_get_bath_component_dimension
+  implicit none
+  character(len=1),intent(in) :: type
+  integer,intent(out)         :: Ndim(3)
+  Ndim = ed_get_bath_component_dimension(type)
+end subroutine get_bath_component_dimension
+
+subroutine get_bath_component(array,bath_,type)
+  USE EDIPACK, only: ed_get_bath_component
+  implicit none
+  real(8),dimension(:,:,:),intent(inout) :: array
+  real(8),dimension(:),intent(in)        :: bath_
+  character(len=1),intent(in)            :: type
+  call ed_get_bath_component(array,bath_,type)
+end subroutine get_bath_component
+
+subroutine set_bath_component(array,bath_,type)
+  USE EDIPACK, only: ed_set_bath_component
+  implicit none
+  real(8),dimension(:,:,:),intent(out)   :: array
+  real(8),dimension(:),intent(in)        :: bath_
+  character(len=1),intent(in)            :: type
+  call ed_set_bath_component(array,bath_,type)
+end subroutine set_bath_component
+
+subroutine copy_bath_component(bathIN,bathOUT,type)
+  USE EDIPACK, only: ed_copy_bath_component
+  implicit none
+  real(8),dimension(:),intent(inout) :: bathIN
+  character(len=1),intent(in)        :: type
+  real(8),dimension(:),intent(out)   :: bathOUT
+end subroutine copy_bath_component
