@@ -330,7 +330,10 @@ contains
        do isector=1,Nsectors
           call get_Nup(isector,Nups)
           call get_Ndw(isector,Ndws)
-          if(any(Nups < Ndws))twin_mask(isector)=.false.
+          if(any(Nups .ne. Ndws))then
+            call get_Sector([Ndws,Nups],Ns_Orb,jsector)
+            if (twin_mask(jsector))twin_mask(isector)=.false.
+          endif
        enddo
        write(LOGfile,"(A,I6,A,I9)")"Looking into ",count(twin_mask)," sectors out of ",Nsectors
     endif
