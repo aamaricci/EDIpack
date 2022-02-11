@@ -19,18 +19,18 @@ MODULE ED_CHI_DENS
 
   public :: build_chi_dens
 
-  integer                      :: istate,iorb,jorb,ispin,jspin
-  integer                      :: isector
-  real(8),allocatable          :: vvinit(:)
-  real(8),allocatable          :: alfa_(:),beta_(:)
-  integer                      :: ialfa
-  integer                      :: jalfa
-  integer                      :: ipos,jpos
-  integer                      :: i,j
-  integer                      :: iph,i_el
-  real(8)                      :: sgn,norm2
-  real(8),dimension(:),pointer :: state_cvec
-  real(8)                      :: state_e
+  integer                          :: istate,iorb,jorb,ispin,jspin
+  integer                          :: isector
+  real(8),allocatable              :: vvinit(:)
+  real(8),allocatable              :: alfa_(:),beta_(:)
+  integer                          :: ialfa
+  integer                          :: jalfa
+  integer                          :: ipos,jpos
+  integer                          :: i,j
+  integer                          :: iph,i_el
+  real(8)                          :: sgn,norm2
+  real(8),dimension(:),allocatable :: state_cvec
+  real(8)                          :: state_e
 
 
 contains
@@ -104,12 +104,12 @@ contains
        state_e    =  es_return_energy(state_list,istate)
 #ifdef _MPI
        if(MpiStatus)then
-          state_cvec => es_return_cvector(MpiComm,state_list,istate)
+          call es_return_cvector(MpiComm,state_list,istate,state_cvec)
        else
-          state_cvec => es_return_cvector(state_list,istate)
+          call es_return_cvector(state_list,istate,state_cvec)
        endif
 #else
-       state_cvec => es_return_cvector(state_list,istate)
+       call es_return_cvector(state_list,istate,state_cvec)
 #endif
        !
        if(MpiMaster)then
@@ -132,15 +132,7 @@ contains
        deallocate(alfa_,beta_)
        if(allocated(vvinit))deallocate(vvinit)
        !
-#ifdef _MPI
-       if(MpiStatus)then
-          if(associated(state_cvec))deallocate(state_cvec)
-       else
-          if(associated(state_cvec))nullify(state_cvec)
-       endif
-#else
-       if(associated(state_cvec))nullify(state_cvec)
-#endif
+       if(allocated(state_cvec))deallocate(state_cvec)
     enddo
     return
   end subroutine lanc_ed_build_densChi_diag
@@ -172,12 +164,12 @@ contains
        state_e    =  es_return_energy(state_list,istate)
 #ifdef _MPI
        if(MpiStatus)then
-          state_cvec => es_return_cvector(MpiComm,state_list,istate)
+          call es_return_cvector(MpiComm,state_list,istate,state_cvec)
        else
-          state_cvec => es_return_cvector(state_list,istate)
+          call es_return_cvector(state_list,istate,state_cvec)
        endif
 #else
-       state_cvec => es_return_cvector(state_list,istate)
+       call es_return_cvector(state_list,istate,state_cvec)
 #endif
        !
        !EVALUATE (N_jorb + N_iorb)|gs> = N_jorb|gs> + N_iorb|gs>
@@ -203,15 +195,7 @@ contains
        deallocate(alfa_,beta_)
        if(allocated(vvinit))deallocate(vvinit)
        !
-#ifdef _MPI
-       if(MpiStatus)then
-          if(associated(state_cvec))deallocate(state_cvec)
-       else
-          if(associated(state_cvec))nullify(state_cvec)
-       endif
-#else
-       if(associated(state_cvec))nullify(state_cvec)
-#endif
+       if(allocated(state_cvec))deallocate(state_cvec)
     enddo
     return
   end subroutine lanc_ed_build_densChi_mix

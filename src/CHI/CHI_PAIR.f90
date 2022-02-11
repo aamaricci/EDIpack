@@ -19,17 +19,17 @@ MODULE ED_CHI_PAIR
 
   public :: build_chi_pair
 
-  integer                      :: istate,iorb,jorb,ispin,jspin
-  integer                      :: isector,jsector,ksector
-  real(8),allocatable          :: vvinit(:),vvinit_tmp(:)
-  real(8),allocatable          :: alfa_(:),beta_(:)
-  integer                      :: ialfa
-  integer                      :: jalfa
-  integer                      :: ipos,jpos
-  integer                      :: i,j,k
-  real(8)                      :: sgn,norm2
-  real(8),dimension(:),pointer :: state_cvec
-  real(8)                      :: state_e
+  integer                          :: istate,iorb,jorb,ispin,jspin
+  integer                          :: isector,jsector,ksector
+  real(8),allocatable              :: vvinit(:),vvinit_tmp(:)
+  real(8),allocatable              :: alfa_(:),beta_(:)
+  integer                          :: ialfa
+  integer                          :: jalfa
+  integer                          :: ipos,jpos
+  integer                          :: i,j,k
+  real(8)                          :: sgn,norm2
+  real(8),dimension(:),allocatable :: state_cvec
+  real(8)                          :: state_e
 
 contains
 
@@ -97,12 +97,12 @@ contains
        state_e    =  es_return_energy(state_list,istate)
 #ifdef _MPI
        if(MpiStatus)then
-          state_cvec => es_return_cvector(MpiComm,state_list,istate)
+          call es_return_cvector(MpiComm,state_list,istate,state_cvec)
        else
-          state_cvec => es_return_cvector(state_list,istate)
+          call es_return_cvector(state_list,istate,state_cvec)
        endif
 #else
-       state_cvec => es_return_cvector(state_list,istate)
+       call es_return_cvector(state_list,istate,state_cvec)
 #endif
        !
        ksector = getCsector(ialfa,2,isector)
@@ -143,15 +143,7 @@ contains
           if(allocated(vvinit))deallocate(vvinit)
        endif
        !
-#ifdef _MPI
-       if(MpiStatus)then
-          if(associated(state_cvec))deallocate(state_cvec)
-       else
-          if(associated(state_cvec))nullify(state_cvec)
-       endif
-#else
-       if(associated(state_cvec))nullify(state_cvec)
-#endif
+if(allocated(state_cvec))deallocate(state_cvec)
        !
     enddo
     return
@@ -185,12 +177,12 @@ contains
        state_e    =  es_return_energy(state_list,istate)
 #ifdef _MPI
        if(MpiStatus)then
-          state_cvec => es_return_cvector(MpiComm,state_list,istate)
+          call es_return_cvector(MpiComm,state_list,istate,state_cvec)
        else
-          state_cvec => es_return_cvector(state_list,istate)
+          call es_return_cvector(state_list,istate,state_cvec)
        endif
 #else
-       state_cvec => es_return_cvector(state_list,istate)
+       call es_return_cvector(state_list,istate,state_cvec)
 #endif
        !
        !
@@ -245,15 +237,7 @@ contains
           if(allocated(vvinit))deallocate(vvinit)
        endif
        !
-#ifdef _MPI
-       if(MpiStatus)then
-          if(associated(state_cvec))deallocate(state_cvec)
-       else
-          if(associated(state_cvec))nullify(state_cvec)
-       endif
-#else
-       if(associated(state_cvec))nullify(state_cvec)
-#endif
+       if(allocated(state_cvec))deallocate(state_cvec)
        !
     enddo
     return

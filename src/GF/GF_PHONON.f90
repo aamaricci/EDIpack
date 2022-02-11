@@ -27,7 +27,7 @@ MODULE ED_GF_PHONON
   integer                               :: i,j,m
   integer                               :: iph,i_el
   real(8)                               :: norm2
-  real(8),dimension(:),pointer          :: state_cvec
+  real(8),dimension(:),allocatable      :: state_cvec
   real(8)                               :: state_e
 
 
@@ -66,12 +66,12 @@ contains
        state_e    =  es_return_energy(state_list,istate)
 #ifdef _MPI
        if(MpiStatus)then
-          state_cvec => es_return_cvector(MpiComm,state_list,istate)
+          call es_return_cvector(MpiComm,state_list,istate,state_cvec)
        else
-          state_cvec => es_return_cvector(state_list,istate)
+          call es_return_cvector(state_list,istate,state_cvec)
        endif
 #else
-       state_cvec => es_return_cvector(state_list,istate)
+       call es_return_cvector(state_list,istate,state_cvec)
 #endif
        !
        call get_Nup(isector,Nups)
@@ -113,15 +113,7 @@ contains
        call add_to_lanczos_phonon(norm2,state_e,alfa_,beta_)
        deallocate(alfa_,beta_)
        if(allocated(vvinit))deallocate(vvinit)
-#ifdef _MPI
-       if(MpiStatus)then
-          if(associated(state_cvec))deallocate(state_cvec)
-       else
-          if(associated(state_cvec))nullify(state_cvec)
-       endif
-#else
-       if(associated(state_cvec))nullify(state_cvec)
-#endif
+       if(allocated(state_cvec))deallocate(state_cvec)
     enddo
     return
   end subroutine lanc_build_gf_phonon_main
