@@ -253,15 +253,7 @@ contains
           enddo
        enddo
        !
-#ifdef _MPI
-       if(MpiStatus)then
-          call es_return_cvector(MpiComm,state_list,istate,state_cvec)
-       else
-          call es_return_cvector(state_list,istate,state_cvec)
-       endif
-#else
-       call es_return_cvector(state_list,istate,state_cvec)
-#endif
+       if(allocated(state_cvec))deallocate(state_cvec)
        !
     enddo
     !
