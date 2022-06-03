@@ -169,12 +169,17 @@ contains
     endif
     !
     !
+    !Manipulate offdiag GF flags:
     offdiag_gf_flag=ed_solve_offdiag_gf
     if(bath_type/="normal")offdiag_gf_flag=.true.
     if(.not.ed_total_ud.AND.offdiag_gf_flag)then
        write(LOGfile,"(A)")"ED WARNING: can not do offdiag_gf_flag=T.AND.ed_total_ud=F. Set to F."
        offdiag_gf_flag=.false.
+       !
+       if(bath_type=="hybrid")ed_all_g=.true.
     endif
+
+
     !
     !
     if(nread/=0.d0)then

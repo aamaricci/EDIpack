@@ -186,6 +186,7 @@ contains
           !
           if(MpiMaster.AND.ed_verbose>3)write(LOGfile,*)""
           call delete_Hv_sector()
+          call Bcast_MPI(MpiComm,eig_values)
           !
           !
        else                     !else LAPACK_SOLVE
