@@ -1,7 +1,7 @@
 # EDIpack: A *parallel* Exact Diagonalization solver for Quantum Impurity problems
 
 A Lanczos based solver for generic quantum impurity models exploiting distributed memory MPI parallelisation. This software focuses on the *normal* case (as opposed to superconducting or spin non-conserving cases) including long range magnetic ordering and arbitrary unit cells. 
-See [arxiv.org/2105.06806](https://arxiv.org/abs/2105.06806). 
+See [j.cpc.2021.108261](https://doi.org/10.1016/j.cpc.2021.108261). 
 
 ### Dependencies
 
@@ -10,7 +10,7 @@ The code is written around the SciFortran library. Dependencies are:
 * gfortran > 9.0.0 **OR** ifort  > 13.0
 * cmake > 3.0.0    
 * [MPI](https://github.com/open-mpi/ompi)
-* [SciFortran](https://github.com/QcmPlab/SciFortran)
+* [SciFortran](https://github.com/aamaricci/SciFortran)
 
 
 ### Installation
@@ -19,7 +19,7 @@ Installation is  available using CMake.
 
 Clone the repo:
 
-`git clone https://github.com/QcmPlab/EDIpack EDIpack`
+`git clone https://github.com/aamaricci/EDIpack EDIpack`
 
 and from the just created directory make a standard out-of-source CMake compilation:
 
