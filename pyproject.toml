@@ -1,0 +1,16 @@
+[build-system]
+build-backend = 'mesonpy'
+requires = ['meson-python']
+
+
+[project]
+name = 'edipy'
+version = '4.0.0'
+description = 'Edipack python API'
+authors = [
+  {name = 'Lorenzo Crippa', email = 'crippa.lorenzo@gmail.com'},
+  {name = 'Adriano Amaricci', email = 'amaricci@sissa.it'},
+]
+
+[project.urls]
+Repository = "https://github.com/aamaricci/EDIpack.git"
