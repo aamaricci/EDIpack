@@ -1,17 +1,15 @@
 import numpy as np
 import scipy as sp
-from edipy import *
-import edipy as ed
+from edipy import global_env as ed
 import mpi4py
 from mpi4py import MPI
-from sys import exit
+import os,sys
 
 #INIT MPI 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 print("I am process",rank,"of",comm.Get_size())
 master = (rank==0)
-
 
 def dens_bethe(x,d):
   root=(1-(x/d)**2)+0.j
@@ -23,11 +21,11 @@ def dens_bethe(x,d):
 ed.read_input("inputED.conf")
 if(ed.Nspin!=1 or ed.Norb!=1):
     print("This test code is for Nspin=1 + Norb=1.")
-    exit()
+    ed.Nspin=1
+    ed.Norb=1
 Le      = 1000
-wmixing = 0.5
+wmixing = 0.3
 wband   = 1.0
-
 
 #BUILD Density of States:
 Eband,de = np.linspace(-wband,wband,Le,retstep=True)
@@ -50,12 +48,10 @@ Hloc =np.zeros((ed.Nspin,ed.Nspin,ed.Norb,ed.Norb),dtype='float',order='F')
 
 
 #SETUP SOLVER
-Nb = ed.get_bath_dimension()
+Nb=ed.get_bath_dimension()
 bath = np.zeros(Nb,dtype='float',order='F')
-bath_prev = bath
 ed.init_solver(bath)
-
-
+bath_prev = np.copy(bath)
 
 #DMFT CYCLE
 converged=False;iloop=0
@@ -65,6 +61,7 @@ while (not converged and iloop<ed.Nloop ):
 
     #Solve the EFFECTIVE IMPURITY PROBLEM (first w/ a guess for the bath)
     ed.solve(bath,Hloc)
+    
 
     #Get Self-energies
     ed.get_sigma_matsubara(Smats)
@@ -83,16 +80,17 @@ while (not converged and iloop<ed.Nloop ):
         np.savetxt('Gloc_iw.dat', np.transpose([wm,Gmats[0,0,0,0,:].imag,Gmats[0,0,0,0,:].real]))
         np.savetxt('Gloc_realw.dat', np.transpose([wr,Greal[0,0,0,0,:].imag,Greal[0,0,0,0,:].real]))
 
+
     #Get the Delta function and FIT:    
     Delta[0,0,0,0,:] = 0.25*wband*Gmats[0,0,0,0,:]
     if(rank==0):
         np.savetxt('Delta_iw.dat', np.transpose([wm,Delta[0,0,0,0,:].imag,Delta[0,0,0,0,:].real]))
     ed.chi2_fitgf(Delta,bath,ispin=1,iorb=1)
-
+    
     if(iloop>1):
         bath = wmixing*bath + (1.0-wmixing)*bath_prev
-    bath_prev=bath
-    
+    bath_prev=np.copy(bath)
+ 
     err,converged=ed.check_convergence(Delta[0,0,0,0,:],ed.dmft_error,1,ed.Nloop)
 
 print("Done...")

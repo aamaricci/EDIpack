@@ -3,37 +3,49 @@ MODULE ED_INPUT_VARS
   USE SF_PARSE_INPUT
   USE SF_IOTOOLS, only:str
   USE ED_VERSION
+  use iso_c_binding
   implicit none
+  
 
   !input variables
   !=========================================================
-  integer              :: Nbath               !Nbath=# of bath sites (per orbital or not depending on bath_type)
-  integer              :: Norb                !Norb =# of impurity orbitals
-  integer              :: Nspin               !Nspin=# spin degeneracy (max 2)
+  integer(c_int), bind(c, name="Nbath")                              :: Nbath               !Nbath=# of bath sites (per orbital or not depending on bath_type)
+  integer(c_int), bind(c, name="Norb")                               :: Norb                !Norb =# of impurity orbitals
+  integer(c_int), bind(c, name="Nspin")                              :: Nspin               !Nspin=# spin degeneracy (max 2)
 
-  integer              :: nloop               !max dmft loop variables
-  integer              :: Nph                 !max number of phonons allowed (cut off)
-  real(8),dimension(5) :: Uloc                !local interactions
-  real(8)              :: Ust                 !intra-orbitals interactions
-  real(8)              :: Jh                  !J_Hund: Hunds' coupling constant 
-  real(8)              :: Jx                  !J_X: coupling constant for the spin-eXchange interaction term
-  real(8)              :: Jp                  !J_P: coupling constant for the Pair-hopping interaction term 
-  real(8)              :: xmu                 !chemical potential
-  real(8)              :: beta                !inverse temperature
+  integer(c_int), bind(c, name="Nloop")                              :: Nloop               !max dmft loop variables
+  integer(c_int), bind(c, name="Nph")                                :: Nph                 !max number of phonons allowed (cut off)
+  real(c_double),dimension(5),bind(c, name="Uloc")                   :: Uloc                !local interactions
+  real(c_double),bind(c, name="Ust")                                 :: Ust                 !intra-orbitals interactions
+  real(c_double),bind(c, name="Jh")                                  :: Jh                  !J_Hund: Hunds' coupling constant 
+  real(c_double),bind(c, name="Jx")                                  :: Jx                  !J_X: coupling constant for the spin-eXchange interaction term
+  real(c_double),bind(c, name="Jp")                                  :: Jp                  !J_P: coupling constant for the Pair-hopping interaction term 
+  real(c_double),bind(c, name="xmu")                                 :: xmu                 !chemical potential
+  real(c_double),bind(c, name="beta")                                :: beta                !inverse temperature
   !
+  real(c_double),dimension(10),bind(c, name="g_ph")                  :: g_ph                !g_ph: electron-phonon coupling constant
+  real(c_double),bind(c, name="w0_ph")                               :: w0_ph               !w0_ph: phonon frequency (constant)
+  !
+  integer(c_int), bind(c, name="Nsuccess")                           :: Nsuccess            !# of repeated success to fall below convergence threshold  
+  real(c_double),bind(c, name="dmft_error")                          :: dmft_error          !dmft convergence threshold
+  real(c_double),bind(c, name="eps")                                 :: eps                 !broadening
+  real(c_double),bind(c, name="wini")                                :: wini           !frequency range min
+  real(c_double),bind(c, name="wfin")                                :: wfin                !frequency range max
+  real(c_double),bind(c, name="xmin")                                :: xmin                !x-range for the local lattice probability distribution function (phonons)
+  real(c_double),bind(c, name="xmax")                                :: xmax                !x-range for the local lattice probability distribution function (phonons)
+  real(c_double),bind(c, name="sb_field")                            :: sb_field            !symmetry breaking field
+  real(c_double),bind(c, name="nread")                               :: nread               !fixed density. if 0.d0 fixed chemical potential calculation.
+  
+  
+  character(len=5)     :: cg_Scheme         !fit scheme: delta (default), weiss for G0
+  character(len=7)     :: bath_type          !flag to set bath type: normal (1bath/imp), hybrid(1bath)
+
+  
   integer              :: ph_type             !shape of the e part of the e-ph interaction: 1=orbital occupation, 2=orbital hybridization
-  real(8),dimension(10):: g_ph                !g_ph: electron-phonon coupling constant
-  real(8)              :: w0_ph               !w0_ph: phonon frequency (constant)
-  !
-  integer              :: Nsuccess            !# of repeated success to fall below convergence threshold  
-  real(8)              :: dmft_error          !dmft convergence threshold
-  real(8)              :: eps                 !broadening
-  real(8)              :: wini,wfin           !frequency range
-  real(8)              :: xmin,xmax           !x-range for the local lattice probability distribution function (phonons)
   logical              :: HFmode              !flag for HF interaction form U(n-1/2)(n-1/2) VS Unn
   real(8)              :: cutoff              !cutoff for spectral summation
   real(8)              :: gs_threshold        !Energy threshold for ground state degeneracy loop up
-  real(8)              :: sb_field            !symmetry breaking field
+  
   !
   logical              :: chispin_flag        !evaluate spin susceptibility
   logical              :: chidens_flag        !evaluate dens susceptibility
@@ -67,7 +79,7 @@ MODULE ED_INPUT_VARS
   integer              :: lanc_nstates_step   !Number of states added at each step to determine the optimal spectrum size at finite T
   integer              :: lanc_dim_threshold  !Min dimension threshold to use Lanczos determination of the spectrum rather than Lapack based exact diagonalization.
   !
-  character(len=5)     :: cg_Scheme           !fit scheme: delta (default), weiss for G0
+
   integer              :: cg_method           !fit routine type:0=CGnr (default), 1=minimize (old f77)
   integer              :: cg_Lfit             !Number of Matsubara frequencies used in the \Chi2 fit
   integer              :: cg_grad             !gradient evaluation: 0=analytic, 1=numeric
@@ -77,9 +89,7 @@ MODULE ED_INPUT_VARS
   integer              :: cg_Weight           !CGfit mode 0=1, 1=1/n , 2=1/w_n weight
   integer              :: cg_pow              !fit power for the calculation of the Chi distance function as |G0 - G0and|**cg_pow
   !
-  character(len=7)     :: bath_type           !flag to set bath type: normal (1bath/imp), hybrid(1bath)
   !
-  real(8)              :: nread               !fixed density. if 0.d0 fixed chemical potential calculation.
   real(8)              :: nerr                !fix density threshold. a loop over from 1.d-1 to required nerr is performed
   real(8)              :: ndelta              !initial chemical potential step
   real(8)              :: ncoeff              !multiplier for the initial ndelta read from a file (ndelta-->ndelta*ncoeff)
@@ -88,23 +98,27 @@ MODULE ED_INPUT_VARS
 
   !Some parameters for function dimension:
   !=========================================================
-  integer              :: Lmats
-  integer              :: Lreal
+  integer(c_int),bind(c, name="Lmats")             :: Lmats
+  integer(c_int),bind(c, name="Lreal")             :: Lreal
 
-  integer              :: Ltau
-  integer              :: Lpos
+  integer(c_int),bind(c, name="Ltau")              :: Ltau
+  integer(c_int),bind(c, name="Lpos")              :: Lpos
 
   !LOG AND Hamiltonian UNITS
   !=========================================================
-  character(len=100)   :: Hfile,SectorFile
-  integer,save         :: LOGfile
+  character(len=100)                                      :: Hfile
+  character(len=100)                                      :: SectorFile
+  integer(c_int),bind(c, name="LOGfile"),save             :: LOGfile
 
   !THIS IS JUST A RELOCATED GLOBAL VARIABLE
   character(len=200)                                 :: ed_input_file=""
+  
+  !TYPE CONVERSION FOR STRINGS
+  !========================================================
+
 
 
 contains
-
 
   !+-------------------------------------------------------------------+
   !PURPOSE  : READ THE INPUT FILE AND SETUP GLOBAL VARIABLES
@@ -126,6 +140,7 @@ contains
     !
     !Store the name of the input file:
     ed_input_file=str(INPUTunit)
+    !
     !
     !DEFAULT VALUES OF THE PARAMETERS:
     call parse_input_variable(Norb,"NORB",INPUTunit,default=1,comment="Number of impurity orbitals (max 5).")

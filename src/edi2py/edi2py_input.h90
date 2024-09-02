@@ -1,7 +1,0 @@
-!ED_INPUT_VARS:
-subroutine read_input(INPUTunit)
-  USE EDIPACK, only: ed_read_input
-  implicit none
-  character(len=*),intent(in) :: INPUTunit
-  call ed_read_input(trim(INPUTunit))
-end subroutine read_input

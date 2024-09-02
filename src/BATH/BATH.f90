@@ -198,7 +198,7 @@ contains
     character(len=1) :: type
     select case(bath_type)
     case default
-       if(type/="e".OR.type/='v')stop "check_bath_component error: type!=e,v"
+       if(type/="e".and.type/='v')stop "check_bath_component error: type!=e,v"
     case ("replica")
        if(type/="l")stop "check_bath_component error: type!=l"
     end select
