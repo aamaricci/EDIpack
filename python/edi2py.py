@@ -155,7 +155,7 @@ def set_Hreplica(self,hloc=None,hvec=None,lambdavec=None):
                 raise ValueError('Shape of 2-dimensional Hloc != [Nso,Nso] in set_Hreplica')
     elif (hvec is not None) and (lambdavec is not None):
         Dimhvec = np.shape(hvec)
-        if(len(Dimhvec) is not 5):
+        if(len(Dimhvec) != 5):
             raise ValueError("Dim(hvec) != [Nspin,Nspin,Norb,Norb,Nsym] in set_Hreplica")
         DimLam=np.shape(lambdavec)
         if(len(DimLam)==1):
