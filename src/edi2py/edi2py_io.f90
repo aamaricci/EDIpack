@@ -1,15 +1,15 @@
 !ED_IO:
-subroutine get_sigma_matsubara_site_c(sigma,dim_sigma_1,dim_sigma_2,dim_sigma_3,dim_sigma_4,dim_sigma_5) bind(c, name='get_sigma_matsubara_site')
-  integer(c_int),value  :: dim_sigma_1,dim_sigma_2,dim_sigma_3,dim_sigma_4,dim_sigma_5
-  complex(c_double_complex),dimension(dim_sigma_1,dim_sigma_2,dim_sigma_3,dim_sigma_4,dim_sigma_5),intent(inout) :: sigma
+subroutine get_sigma_matsubara_site_c(sigma,d) bind(c, name='get_sigma_matsubara_site')
+  integer(c_int64_t)                                                          :: d(5)
+  complex(c_double_complex),dimension(d(1),d(2),d(3),d(4),d(5)),intent(inout) :: sigma
   call assert_shape(sigma,[Nspin,Nspin,Norb,Norb,Lmats],"get_sigma_matsubara","Sigma")
   call ed_get_sigma_matsubara(sigma)
 end subroutine get_sigma_matsubara_site_c
 !
-subroutine get_sigma_matsubara_ineq_c(sigma,dim_sigma_1,dim_sigma_2,dim_sigma_3,dim_sigma_4,dim_sigma_5,dim_sigma_6) bind(c, name='get_sigma_matsubara_ineq')
-  integer(c_int),value  :: dim_sigma_1,dim_sigma_2,dim_sigma_3,dim_sigma_4,dim_sigma_5,dim_sigma_6
-  integer(c_int) :: Nsites
-  complex(c_double_complex),dimension(dim_sigma_1,dim_sigma_2,dim_sigma_3,dim_sigma_4,dim_sigma_5,dim_sigma_6),intent(inout) :: sigma
+subroutine get_sigma_matsubara_ineq_c(sigma,d) bind(c, name='get_sigma_matsubara_ineq')
+  integer(c_int64_t)                                                               :: d(6)
+  complex(c_double_complex),dimension(d(1),d(2),d(3),d(4),d(5),d(6)),intent(inout) :: sigma
+  integer(c_int)                                                                   :: Nsites
   Nsites=size(sigma,1)
   call assert_shape(sigma,[Nsites,Nspin,Nspin,Norb,Norb,Lmats],"get_sigma_matsubara","Sigma")
   call ed_get_sigma_matsubara(sigma,Nsites)
@@ -17,17 +17,17 @@ end subroutine get_sigma_matsubara_ineq_c
 
 
 
-subroutine get_sigma_realaxis_site_c(sigma,dim_sigma_1,dim_sigma_2,dim_sigma_3,dim_sigma_4,dim_sigma_5)  bind(c, name='get_sigma_realaxis_site')
-  integer(c_int),value  :: dim_sigma_1,dim_sigma_2,dim_sigma_3,dim_sigma_4,dim_sigma_5
-  complex(c_double_complex),dimension(dim_sigma_1,dim_sigma_2,dim_sigma_3,dim_sigma_4,dim_sigma_5),intent(inout) :: sigma
+subroutine get_sigma_realaxis_site_c(sigma,d)  bind(c, name='get_sigma_realaxis_site')
+  integer(c_int64_t)                                                          :: d(5)
+  complex(c_double_complex),dimension(d(1),d(2),d(3),d(4),d(5)),intent(inout) :: sigma
   call assert_shape(sigma,[Nspin,Nspin,Norb,Norb,Lreal],"get_sigma_realaxis","sigma")
   call ed_get_sigma_realaxis(sigma)
 end subroutine get_sigma_realaxis_site_c
 !
-subroutine get_sigma_realaxis_ineq_c(sigma,dim_sigma_1,dim_sigma_2,dim_sigma_3,dim_sigma_4,dim_sigma_5,dim_sigma_6)  bind(c, name='get_sigma_realaxis_ineq')
-  integer(c_int),value  :: dim_sigma_1,dim_sigma_2,dim_sigma_3,dim_sigma_4,dim_sigma_5,dim_sigma_6
-  integer(c_int) :: Nsites
-  complex(c_double_complex),dimension(dim_sigma_1,dim_sigma_2,dim_sigma_3,dim_sigma_4,dim_sigma_5,dim_sigma_6),intent(inout) :: sigma
+subroutine get_sigma_realaxis_ineq_c(sigma,d)  bind(c, name='get_sigma_realaxis_ineq')
+  integer(c_int64_t)                                                               :: d(6)
+  complex(c_double_complex),dimension(d(1),d(2),d(3),d(4),d(5),d(6)),intent(inout) :: sigma
+  integer(c_int)                                                                   :: Nsites
   Nsites=size(sigma,1)
   call assert_shape(sigma,[Nsites,Nspin,Nspin,Norb,Norb,Lreal],"get_sigma_realaxis","sigma")
   call ed_get_sigma_realaxis(sigma,Nsites)
@@ -35,34 +35,35 @@ end subroutine get_sigma_realaxis_ineq_c
 
 
 
-subroutine get_gimp_matsubara_site_c(gimp,dim_gimp_1,dim_gimp_2,dim_gimp_3,dim_gimp_4,dim_gimp_5) bind(c, name='get_gimp_matsubara_site')
-  integer(c_int),value  :: dim_gimp_1,dim_gimp_2,dim_gimp_3,dim_gimp_4,dim_gimp_5
-  complex(c_double_complex),dimension(dim_gimp_1,dim_gimp_2,dim_gimp_3,dim_gimp_4,dim_gimp_5),intent(inout) :: gimp
+subroutine get_gimp_matsubara_site_c(gimp,d) bind(c, name='get_gimp_matsubara_site')
+  integer(c_int64_t)                                                          :: d(5)
+  complex(c_double_complex),dimension(d(1),d(2),d(3),d(4),d(5)),intent(inout) :: gimp
   call assert_shape(gimp,[Nspin,Nspin,Norb,Norb,Lmats],"get_gimp_matsubara","gimp")
   call ed_get_gimp_matsubara(gimp)
 end subroutine get_gimp_matsubara_site_c
 !
-subroutine get_gimp_matsubara_ineq_c(gimp,dim_gimp_1,dim_gimp_2,dim_gimp_3,dim_gimp_4,dim_gimp_5,dim_gimp_6) bind(c, name='get_gimp_matsubara_ineq')
-  integer(c_int),value  :: dim_gimp_1,dim_gimp_2,dim_gimp_3,dim_gimp_4,dim_gimp_5,dim_gimp_6
-  integer(c_int) :: Nsites
-  complex(c_double_complex),dimension(dim_gimp_1,dim_gimp_2,dim_gimp_3,dim_gimp_4,dim_gimp_5,dim_gimp_6),intent(inout) :: gimp
+subroutine get_gimp_matsubara_ineq_c(gimp,d) bind(c, name='get_gimp_matsubara_ineq')
+  integer(c_int64_t)                                                               :: d(6)
+  complex(c_double_complex),dimension(d(1),d(2),d(3),d(4),d(5),d(6)),intent(inout) :: gimp
+  integer(c_int)                                                                   :: Nsites
   Nsites=size(gimp,1)
   call assert_shape(gimp,[Nsites,Nspin,Nspin,Norb,Norb,Lmats],"get_gimp_matsubara","gimp")
   call ed_get_gimp_matsubara(gimp,Nsites)
 end subroutine get_gimp_matsubara_ineq_c
 
 
-subroutine get_gimp_realaxis_site_c(gimp,dim_gimp_1,dim_gimp_2,dim_gimp_3,dim_gimp_4,dim_gimp_5)  bind(c, name='get_gimp_realaxis_site')
-  integer(c_int),value  :: dim_gimp_1,dim_gimp_2,dim_gimp_3,dim_gimp_4,dim_gimp_5
-  complex(c_double_complex),dimension(dim_gimp_1,dim_gimp_2,dim_gimp_3,dim_gimp_4,dim_gimp_5),intent(inout) :: gimp
+
+subroutine get_gimp_realaxis_site_c(gimp,d)  bind(c, name='get_gimp_realaxis_site')
+  integer(c_int64_t)                                                          :: d(5)
+  complex(c_double_complex),dimension(d(1),d(2),d(3),d(4),d(5)),intent(inout) :: gimp
   call assert_shape(gimp,[Nspin,Nspin,Norb,Norb,Lreal],"get_gimp_realaxis","gimp")
   call ed_get_gimp_realaxis(gimp)
 end subroutine get_gimp_realaxis_site_c
 !
-subroutine get_gimp_realaxis_ineq_c(gimp,dim_gimp_1,dim_gimp_2,dim_gimp_3,dim_gimp_4,dim_gimp_5,dim_gimp_6)  bind(c, name='get_gimp_realaxis_ineq')
-  integer(c_int),value  :: dim_gimp_1,dim_gimp_2,dim_gimp_3,dim_gimp_4,dim_gimp_5,dim_gimp_6
-  integer(c_int) :: Nsites
-  complex(c_double_complex),dimension(dim_gimp_1,dim_gimp_2,dim_gimp_3,dim_gimp_4,dim_gimp_5,dim_gimp_6),intent(inout) :: gimp
+subroutine get_gimp_realaxis_ineq_c(gimp,d)  bind(c, name='get_gimp_realaxis_ineq')
+  integer(c_int64_t)                                                               :: d(6)
+  complex(c_double_complex),dimension(d(1),d(2),d(3),d(4),d(5),d(6)),intent(inout) :: gimp
+  integer(c_int)                                                                   :: Nsites
   Nsites=size(gimp,1)
   call assert_shape(gimp,[Nsites,Nspin,Nspin,Norb,Norb,Lreal],"get_gimp_realaxis","gimp")
   call ed_get_gimp_realaxis(gimp,Nsites)

@@ -62,7 +62,7 @@ libedi2py = CDLL(libfile)
 ######################################
 
 read_input_wrap = libedi2py.read_input
-read_input_wrap.argtypes = [c_char_p]  # allows for automatic type conversion
+read_input_wrap.argtypes = [c_char_p]  
 read_input_wrap.restype = None
 
 def read_input(self,input_string):
@@ -75,39 +75,48 @@ def read_input(self,input_string):
 
 # Define the function signature for the Fortran function `init_solver_site`.
 init_solver_site = libedi2py.init_solver_site
-init_solver_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int]  # allows for automatic type conversion
+init_solver_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),np.ctypeslib.ndpointer(dtype=int,ndim=1, flags='F_CONTIGUOUS')]  
 init_solver_site.restype = None
 
 # Define the function signature for the Fortran function `init_solver_ineq`.
 init_solver_ineq = libedi2py.init_solver_ineq
-init_solver_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),c_int,c_int]  # allows for automatic type conversion
+init_solver_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),np.ctypeslib.ndpointer(dtype=int,ndim=2, flags='F_CONTIGUOUS')]  
 init_solver_ineq.restype = None
+
+
+def init_solver(self,bath):
+    dim_bath=np.asarray(np.shape(bath),dtype=int,order="F")
+    if len(dim_bath)<2:
+        init_solver_site(bath,dim_bath)
+    else:
+        init_solver_ineq(bath,dim_bath)
 
 # Define the function signature for the Fortran function `solve_site`.
 solve_site = libedi2py.solve_site
-solve_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,np.ctypeslib.ndpointer(ndim=4, flags='F_CONTIGUOUS'),c_int,c_int,c_int,c_int,c_int]  # allows for automatic type conversion
+solve_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                       np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                       np.ctypeslib.ndpointer(dtype=float,ndim=4, flags='F_CONTIGUOUS'),
+                       np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                       c_int]  
 solve_site.restype = None
 
 # Define the function signature for the Fortran function `solve_ineq`.
 solve_ineq = libedi2py.solve_ineq
-solve_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),c_int,c_int,np.ctypeslib.ndpointer(ndim=5, flags='F_CONTIGUOUS'),c_int,c_int,c_int,c_int,c_int,c_int]  # allows for automatic type conversion
+solve_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                       np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                       np.ctypeslib.ndpointer(dtype=float,ndim=4, flags='F_CONTIGUOUS'),
+                       np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                       c_int]  
 solve_ineq.restype = None
-
-def init_solver(self,bath):
-    dim_bath=np.shape(bath)
-    if len(dim_bath)<2:
-        init_solver_site(bath,dim_bath[0])
-    else:
-        init_solver_ineq(bath,dim_bath[0],dim_bath[1])
 
     
 def solve(self,bath,hloc,sflag=True,mpi_lanc=False):
-    dim_bath=np.shape(bath)
-    dim_hloc=np.shape(hloc)
+    dim_bath=np.asarray(np.shape(bath),dtype=np.int64,order="F")
+    dim_hloc=np.asarray(np.shape(hloc),dtype=np.int64,order="F")
     if len(dim_bath)<2:
-        solve_site(bath,dim_bath[0],hloc,dim_hloc[0],dim_hloc[1],dim_hloc[2],dim_hloc[3],sflag)
+        solve_site(bath,dim_bath,hloc,dim_hloc,sflag)
     else:
-        solve_ineq(bath,dim_bath[0],dim_bath[1],hloc,dim_hloc[0],dim_hloc[1],dim_hloc[2],dim_hloc[3],dim_hloc[4],mpi_lanc)
+        solve_ineq(bath,dim_bath,hloc,dim_hloc,mpi_lanc)
         
 
 ######################################
@@ -116,7 +125,7 @@ def solve(self,bath,hloc,sflag=True,mpi_lanc=False):
 
 #get_bath_dimension
 get_bath_dimension_wrap = libedi2py.get_bath_dimension
-get_bath_dimension_wrap.argtypes = None  # allows for automatic type conversion
+get_bath_dimension_wrap.argtypes = None  
 get_bath_dimension_wrap.restype = c_int
 
 def get_bath_dimension(self):
@@ -132,11 +141,16 @@ init_hreplica_direct_so.argtypes =[np.ctypeslib.ndpointer(dtype=float,ndim=2, fl
 init_hreplica_direct_so.restype = None
 
 init_hreplica_symmetries_site = libedi2py.init_Hreplica_symmetries_site
-init_hreplica_symmetries_site.argtypes =[np.ctypeslib.ndpointer(dtype=float,ndim=5, flags='F_CONTIGUOUS'),np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int]
+init_hreplica_symmetries_site.argtypes =[np.ctypeslib.ndpointer(dtype=float,ndim=5, flags='F_CONTIGUOUS'),
+                                         np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                         c_int]
 init_hreplica_symmetries_site.restype = None
 
 init_hreplica_symmetries_lattice = libedi2py.init_Hreplica_symmetries_ineq
-init_hreplica_symmetries_lattice.argtypes =[np.ctypeslib.ndpointer(dtype=float,ndim=5, flags='F_CONTIGUOUS'),np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),c_int,c_int]
+init_hreplica_symmetries_lattice.argtypes =[np.ctypeslib.ndpointer(dtype=float,ndim=5, flags='F_CONTIGUOUS'),
+                                            np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),
+                                            c_int,
+                                            c_int]
 init_hreplica_symmetries_lattice.restype = None
     
 def set_Hreplica(self,hloc=None,hvec=None,lambdavec=None):
@@ -173,11 +187,19 @@ def set_Hreplica(self,hloc=None,hvec=None,lambdavec=None):
     
 #break_symmetry_bath
 break_symmetry_bath_site = libedi2py.break_symmetry_bath_site
-break_symmetry_bath_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_double,c_double,c_int]
+break_symmetry_bath_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                     np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                                     c_double,
+                                     c_double,
+                                     c_int]
 break_symmetry_bath_site.restype = None
 
 break_symmetry_bath_ineq = libedi2py.break_symmetry_bath_ineq
-break_symmetry_bath_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),c_int,c_int,c_double,c_double,c_int]
+break_symmetry_bath_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                     np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                                     c_double,
+                                     c_double,
+                                     c_int]
 break_symmetry_bath_ineq.restype = None
 
 def break_symmetry_bath(self, bath, field, sign, save=True):
@@ -185,20 +207,24 @@ def break_symmetry_bath(self, bath, field, sign, save=True):
         save_int=1
     else:
         save_int=0
-    bath_shape = np.shape(bath)
+    bath_shape = np.asarray(np.shape(bath),dtype=np.int64,order="F")
     if (len(bath_shape)) == 1:
-        break_symmetry_bath_site(bath,bath_shape[0],field,float(sign),save_int)
+        break_symmetry_bath_site(bath,bath_shape,field,float(sign),save_int)
     else:
-        break_symmetry_bath_ineq(bath,bath_shape[0],bath_shape[1],field,float(sign),save_int)
+        break_symmetry_bath_ineq(bath,bath_shape,field,float(sign),save_int)
     return bath
     
 #spin_symmetrize_bath
 spin_symmetrize_bath_site = libedi2py.spin_symmetrize_bath_site
-spin_symmetrize_bath_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_int]
+spin_symmetrize_bath_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                      np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                                      c_int]
 spin_symmetrize_bath_site.restypes = None
 
 spin_symmetrize_bath_ineq = libedi2py.spin_symmetrize_bath_ineq
-spin_symmetrize_bath_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_int,c_int]
+spin_symmetrize_bath_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                      np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'), 
+                                      c_int]
 spin_symmetrize_bath_ineq.restypes = None
     
 def spin_symmetrize_bath(self, bath, save=True):
@@ -206,41 +232,51 @@ def spin_symmetrize_bath(self, bath, save=True):
         save_int=1
     else:
         save_int=0
-    bath_shape = np.shape(bath)
+    bath_shape = np.asarray(np.shape(bath),dtype=np.int64,order="F")
     if (len(bath_shape)) == 1:
-        spin_symmetrize_bath_site(bath,bath_shape[0],save_int)
+        spin_symmetrize_bath_site(bath,bath_shape,save_int)
     else:
-        spin_symmetrize_bath_ineq(bath,bath_shape[0],bath_shape[1],save_int)
+        spin_symmetrize_bath_ineq(bath,bath_shape,save_int)
     return bath
     
 #orb_symmetrize_bath
 orb_symmetrize_bath_site = libedi2py.orb_symmetrize_bath_site
-orb_symmetrize_bath_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_int]
+orb_symmetrize_bath_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                      np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                                      c_int]
 orb_symmetrize_bath_site.restypes = None
 
 orb_symmetrize_bath_ineq = libedi2py.orb_symmetrize_bath_ineq
-orb_symmetrize_bath_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_int,c_int]
+orb_symmetrize_bath_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                     np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'), 
+                                     c_int]
 orb_symmetrize_bath_ineq.restypes = None
     
-def orb_symmetrize_bath(self, bath, save):
+def orb_symmetrize_bath(self, bath, save=True):
     if save:
         save_int=1
     else:
         save_int=0
-    bath_shape = np.shape(bath)
+    bath_shape = np.asarray(np.shape(bath),dtype=np.int64,order="F")
     if (len(bath_shape)) == 1:
-        orb_symmetrize_bath_site(bath,bath_shape[0],save_int)
+        orb_symmetrize_bath_site(bath,bath_shape,save_int)
     else:
-        orb_symmetrize_bath_ineq(bath,bath_shape[0],bath_shape[1],save_int)
+        orb_symmetrize_bath_ineq(bath,bath_shape,save_int)
     return bath
     
 #orb_equality_bath
 orb_equality_bath_site = libedi2py.orb_equality_bath_site
-orb_equality_bath_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_int,c_int]
+orb_equality_bath_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                   np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'), 
+                                   c_int,
+                                   c_int]
 orb_equality_bath_site.restypes = None
 
 orb_equality_bath_ineq = libedi2py.orb_equality_bath_ineq
-orb_equality_bath_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_int,c_int,c_int]
+orb_equality_bath_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                   np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                                   c_int,
+                                   c_int]
 orb_equality_bath_ineq.restypes = None
     
 def orb_equality_bath(self, bath, indx, save=True):
@@ -249,25 +285,29 @@ def orb_equality_bath(self, bath, indx, save=True):
         save_int=1
     else:
         save_int=0
-    bath_shape = np.shape(bath)
+    bath_shape = np.asarray(np.shape(bath),dtype=np.int64,order="F")
     if (indx < 0) or (indx >= aux_norb):
         raise ValueError("orb_equality_bath: orbital index should be in [0,Norb]")
     else:
         indx = indx + 1 #python to fortran convention 
         if (len(bath_shape)) == 1:
-            orb_equality_bath_site(bath,bath_shape[0],indx,save_int)
+            orb_equality_bath_site(bath,bath_shape,indx,save_int)
         else:
-            orb_equality_bath_ineq(bath,bath_shape[0],bath_shape[1],indx,save_int)
+            orb_equality_bath_ineq(bath,bath_shape,indx,save_int)
     return bath
     
     
 #ph_symmetrize_bath
 ph_symmetrize_bath_site = libedi2py.ph_symmetrize_bath_site
-ph_symmetrize_bath_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_int]
+ph_symmetrize_bath_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                    np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                                    c_int]
 ph_symmetrize_bath_site.restypes = None
 
 ph_symmetrize_bath_ineq = libedi2py.ph_symmetrize_bath_ineq
-ph_symmetrize_bath_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_int,c_int]
+ph_symmetrize_bath_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                    np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                                    c_int]
 ph_symmetrize_bath_ineq.restypes = None
 
 def ph_symmetrize_bath(self, bath, save):
@@ -275,20 +315,24 @@ def ph_symmetrize_bath(self, bath, save):
         save_int=1
     else:
         save_int=0
-    bath_shape = np.shape(bath)
+    bath_shape = np.asarray(np.shape(bath),dtype=np.int64,order="F")
     if (len(bath_shape)) == 1:
-        ph_symmetrize_bath_site(bath,bath_shape[0],save_int)
+        ph_symmetrize_bath_site(bath,bath_shape,save_int)
     else:
-        ph_symmetrize_bath_ineq(bath,bath_shape[0],bath_shape[1],save_int)
+        ph_symmetrize_bath_ineq(bath,bath_shape,save_int)
     return bath
 
 #ph_trans_bath
 ph_trans_bath_site = libedi2py.ph_trans_bath_site
-ph_trans_bath_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_int]
+ph_trans_bath_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                               np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                               c_int]
 ph_trans_bath_site.restypes = None
 
 ph_trans_bath_ineq = libedi2py.ph_trans_bath_ineq
-ph_trans_bath_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_int,c_int]
+ph_trans_bath_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                               np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                               c_int]
 ph_trans_bath_ineq.restypes = None
 
 def ph_trans_bath(self, bath, save):
@@ -296,57 +340,68 @@ def ph_trans_bath(self, bath, save):
         save_int=1
     else:
         save_int=0
-    bath_shape = np.shape(bath)
+    bath_shape = np.asarray(np.shape(bath),dtype=np.int64,order="F")
     if (len(bath_shape)) == 1:
-        ph_trans_bath_site(bath,bath_shape[0],save_int)
+        ph_trans_bath_site(bath,bath_shape,save_int)
     else:
-        ph_trans_bath_ineq(bath,bath_shape[0],bath_shape[1],save_int)
+        ph_trans_bath_ineq(bath,bath_shape,save_int)
     return bath
     
 #get_bath_component_dimension
 get_bath_component_dimension_wrap = libedi2py.get_bath_component_dimension
-get_bath_component_dimension_wrap.argtypes = [c_char_p,np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS')]
+get_bath_component_dimension_wrap.argtypes = [c_char_p,np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS')]
 get_bath_component_dimension_wrap.restypes = None
 
 def get_bath_component_dimension(self,typ="e"):
-    ndim=np.zeros(3,order="F")
+    ndim=np.zeros(3,dtype=np.int64,order="F")
     get_bath_component_dimension_wrap(c_char_p(typ.encode()),ndim)
-    ndim = [int(a) for a in ndim]
     return ndim
 
 #get_bath_component
 get_bath_component_wrap = libedi2py.get_bath_component
-get_bath_component_wrap.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_int,c_int,np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_char_p]
+get_bath_component_wrap.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                    np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                                    np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                    np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                                    c_char_p]
 get_bath_component_wrap.restypes = None
 
 def get_bath_component(self,array,bath,typ="e"):
-    DimArray=np.shape(array)
-    DimBath=np.shape(bath)
+    DimArray = np.asarray(np.shape(array),dtype=np.int64,order="F")
+    DimBath = np.asarray(np.shape(bath),dtype=np.int64,order="F")
     if not len(DimArray)==3:
         raise ValueError('Shape(array) != 3 in get_bath_component')
     if not len(DimBath)==1:
         raise ValueError('Shape(bath) != 1 in get_bath_component')
-    edi2py.get_bath_component(array,DimArray[0],DimArray[1],DimArray[2],bath,DimBath[0],c_char_p(typ.encode()))
+    edi2py.get_bath_component(array,DimArray,bath,DimBath,c_char_p(typ.encode()))
     return array
 
 #set_bath_component
 set_bath_component_wrap = libedi2py.set_bath_component
-set_bath_component_wrap.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_int,c_int,np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_char_p]
+set_bath_component_wrap.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                    np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                                    np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                    np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                                    c_char_p]
 set_bath_component_wrap.restypes = None
 
 def set_bath_component(self,array,bath,typ="e"):
-    DimArray=np.shape(array)
-    DimBath=np.shape(bath)
+    DimArray = np.asarray(np.shape(array),dtype=np.int64,order="F")
+    DimBath = np.asarray(np.shape(bath),dtype=np.int64,order="F")
     if not len(DimArray)==3:
-        raise ValueError('Shape(array) != 3 in get_bath_component')
+        raise ValueError('Shape(array) != 3 in set_bath_component')
     if not len(DimBath)==1:
-        raise ValueError('Shape(bath) != 1 in get_bath_component')
-    edi2py.set_bath_component(array,DimArray[0],DimArray[1],DimArray[2],bath,DimBath[0],c_char_p(typ.encode()))
-    return bath
+        raise ValueError('Shape(bath) != 1 in set_bath_component')
+    edi2py.set_bath_component(array,DimArray,bath,DimBath,c_char_p(typ.encode()))
+    return array
  
 #copy_bath_component
 copy_bath_component_wrap = libedi2py.copy_bath_component
-copy_bath_component_wrap.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_char_p]
+copy_bath_component_wrap.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                     c_int,
+                                     np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                     c_int,
+                                     c_char_p]
 copy_bath_component_wrap.restypes = None
 
 def copy_bath_component(bathIN,bathOUT,typ="e"):
@@ -366,82 +421,94 @@ def copy_bath_component(bathIN,bathOUT,typ="e"):
 
 #sigma_matsubara
 get_sigma_matsubara_site = libedi2py.get_sigma_matsubara_site
-get_sigma_matsubara_site.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=5, flags='F_CONTIGUOUS'),c_int,c_int,c_int,c_int,c_int]  # allows for automatic type conversion
+get_sigma_matsubara_site.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=5, flags='F_CONTIGUOUS'),
+                                     np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS')]  
 get_sigma_matsubara_site.restype = None
 
 get_sigma_matsubara_ineq = libedi2py.get_sigma_matsubara_ineq
-get_sigma_matsubara_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=6, flags='F_CONTIGUOUS'),c_int,c_int,c_int,c_int,c_int,c_int]  # allows for automatic type conversion
+get_sigma_matsubara_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=6, flags='F_CONTIGUOUS'),
+                                     np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS')]  
 get_sigma_matsubara_ineq.restype = None
 
 def get_sigma_matsubara(self,Smats):
-    dim_Smats=np.shape(Smats)
+    dim_Smats = np.asarray(np.shape(Smats),dtype=np.int64,order="F")
     if len(dim_Smats)==5:
-        get_sigma_matsubara_site(Smats,dim_Smats[0],dim_Smats[1],dim_Smats[2],dim_Smats[3],dim_Smats[4])
+        get_sigma_matsubara_site(Smats,dim_Smats)
     else:
-        get_sigma_matsubara_ineq(Smats,dim_Smats[0],dim_Smats[1],dim_Smats[2],dim_Smats[3],dim_Smats[4],dim_Smats[5])
+        get_sigma_matsubara_ineq(Smats,dim_Smats)
     return Smats
 
 #sigma_realaxis
 get_sigma_realaxis_site = libedi2py.get_sigma_realaxis_site
-get_sigma_realaxis_site.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=5, flags='F_CONTIGUOUS'),c_int,c_int,c_int,c_int,c_int]  # allows for automatic type conversion
+get_sigma_realaxis_site.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=5, flags='F_CONTIGUOUS'),
+                                    np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS')]  
 get_sigma_realaxis_site.restype = None
 
-get_sigma_realaxis_ineq = libedi2py.get_sigma_matsubara_ineq
-get_sigma_realaxis_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=6, flags='F_CONTIGUOUS'),c_int,c_int,c_int,c_int,c_int,c_int]  # allows for automatic type conversion
+get_sigma_realaxis_ineq = libedi2py.get_sigma_realaxis_ineq
+get_sigma_realaxis_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=6, flags='F_CONTIGUOUS'),
+                                    np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS')]  
 get_sigma_realaxis_ineq.restype = None
 
         
 def get_sigma_realaxis(self,Sreal):
-    dim_Sreal=np.shape(Sreal)
+    dim_Sreal = np.asarray(np.shape(Sreal),dtype=np.int64,order="F")
     if len(dim_Sreal)==5:
-        get_sigma_realaxis_site(Sreal,dim_Sreal[0],dim_Sreal[1],dim_Sreal[2],dim_Sreal[3],dim_Sreal[4])
+        get_sigma_realaxis_site(Sreal,dim_Sreal)
     else:
-        get_sigma_realaxis_ineq(Sreal,dim_Sreal[0],dim_Sreal[1],dim_Sreal[2],dim_Sreal[3],dim_Sreal[4],dim_Sreal[5])
+        get_sigma_realaxis_ineq(Sreal,dim_Sreal)
     return Sreal
         
 #gimp_matsubara
 get_gimp_matsubara_site = libedi2py.get_gimp_matsubara_site
-get_gimp_matsubara_site.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=5, flags='F_CONTIGUOUS'),c_int,c_int,c_int,c_int,c_int]  # allows for automatic type conversion
+get_gimp_matsubara_site.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=5, flags='F_CONTIGUOUS'),
+                                     np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS')]  
 get_gimp_matsubara_site.restype = None
 
 get_gimp_matsubara_ineq = libedi2py.get_gimp_matsubara_ineq
-get_gimp_matsubara_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=6, flags='F_CONTIGUOUS'),c_int,c_int,c_int,c_int,c_int,c_int]  # allows for automatic type conversion
+get_gimp_matsubara_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=6, flags='F_CONTIGUOUS'),
+                                     np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS')]  
 get_gimp_matsubara_ineq.restype = None
 
 def get_gimp_matsubara(self,Gmats):
-    dim_Gmats=np.shape(Gmats)
+    dim_Gmats = np.asarray(np.shape(Gmats),dtype=np.int64,order="F")
     if len(dim_Gmats)==5:
-        get_gimp_matsubara_site(Gmats,dim_Gmats[0],dim_Gmats[1],dim_Gmats[2],dim_Gmats[3],dim_Gmats[4])
+        get_gimp_matsubara_site(Gmats,dim_Gmats)
     else:
-        get_gimp_matsubara_ineq(Gmats,dim_Gmats[0],dim_Gmats[1],dim_Gmats[2],dim_Gmats[3],dim_Gmats[4],dim_Gmats[5])
+        get_gimp_matsubara_ineq(Gmats,dim_Gmats)
     return Gmats
 
 #gimp_realaxis
 get_gimp_realaxis_site = libedi2py.get_gimp_realaxis_site
-get_gimp_realaxis_site.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=5, flags='F_CONTIGUOUS'),c_int,c_int,c_int,c_int,c_int]  # allows for automatic type conversion
+get_gimp_realaxis_site.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=5, flags='F_CONTIGUOUS'),
+                                   np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS')]  
 get_gimp_realaxis_site.restype = None
 
-get_gimp_realaxis_ineq = libedi2py.get_gimp_matsubara_ineq
-get_gimp_realaxis_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=6, flags='F_CONTIGUOUS'),c_int,c_int,c_int,c_int,c_int,c_int]  # allows for automatic type conversion
+get_gimp_realaxis_ineq = libedi2py.get_gimp_realaxis_ineq
+get_gimp_realaxis_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=6, flags='F_CONTIGUOUS'),
+                                   np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS')]  
 get_gimp_realaxis_ineq.restype = None
 
         
 def get_gimp_realaxis(self,Greal):
-    dim_Greal=np.shape(Greal)
+    dim_Greal = np.asarray(np.shape(Greal),dtype=np.int64,order="F")
     if len(dim_Greal)==5:
-        get_gimp_realaxis_site(Greal,dim_Greal[0],dim_Greal[1],dim_Greal[2],dim_Greal[3],dim_Greal[4])
+        get_gimp_realaxis_site(Greal,dim_Greal)
     else:
-        get_gimp_realaxis_ineq(Greal,dim_Greal[0],dim_Greal[1],dim_Greal[2],dim_Greal[3],dim_Greal[4],dim_Greal[5])
+        get_gimp_realaxis_ineq(Greal,dim_Greal)
     return Greal
         
         
 #dens
 get_dens_site = libedi2py.get_dens_site
-get_dens_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int]  # allows for automatic type conversion
+get_dens_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                          c_int]  
 get_dens_site.restype = None
 
 get_dens_ineq = libedi2py.get_dens_ineq
-get_dens_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),c_int,c_int,c_int]  # allows for automatic type conversion
+get_dens_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),
+                          c_int,
+                          c_int,
+                          c_int]  
 get_dens_ineq.restype = None
         
 def get_dens(self,Nlat=-1,iorb=-1):
@@ -464,11 +531,15 @@ def get_dens(self,Nlat=-1,iorb=-1):
         
 #mag
 get_mag_site = libedi2py.get_mag_site
-get_mag_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int]  # allows for automatic type conversion
+get_mag_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                         c_int]  
 get_mag_site.restype = None
 
 get_mag_ineq = libedi2py.get_mag_ineq
-get_mag_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),c_int,c_int,c_int]  # allows for automatic type conversion
+get_mag_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),
+                         c_int,
+                         c_int,
+                         c_int]  
 get_mag_ineq.restype = None
         
 def get_mag(self,Nlat=-1,iorb=-1):
@@ -490,11 +561,15 @@ def get_mag(self,Nlat=-1,iorb=-1):
 
 #docc
 get_docc_site = libedi2py.get_docc_site
-get_docc_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int]  # allows for automatic type conversion
+get_docc_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                          c_int]  
 get_docc_site.restype = None
 
 get_docc_ineq = libedi2py.get_docc_ineq
-get_docc_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),c_int,c_int,c_int]  # allows for automatic type conversion
+get_docc_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),
+                          c_int,
+                          c_int,
+                          c_int]  
 get_docc_ineq.restype = None
         
 def get_docc(self,Nlat=-1,iorb=-1):
@@ -516,11 +591,12 @@ def get_docc(self,Nlat=-1,iorb=-1):
         
 #eimp
 get_eimp_site = libedi2py.get_eimp_site
-get_eimp_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS')]  # allows for automatic type conversion
+get_eimp_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS')]  
 get_eimp_site.restype = None
 
 get_eimp_ineq = libedi2py.get_eimp_ineq
-get_eimp_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),c_int]  # allows for automatic type conversion
+get_eimp_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),
+                          c_int]  
 get_eimp_ineq.restype = None
         
 def get_eimp(self,Nlat=-1):
@@ -535,11 +611,12 @@ def get_eimp(self,Nlat=-1):
         
 #doubles
 get_doubles_site = libedi2py.get_doubles_site
-get_doubles_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS')]  # allows for automatic type conversion
+get_doubles_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS')]  
 get_doubles_site.restype = None
 
 get_doubles_ineq = libedi2py.get_doubles_ineq
-get_doubles_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),c_int]  # allows for automatic type conversion
+get_doubles_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),
+                             c_int]  
 get_doubles_ineq.restype = None
         
 def get_doubles(self,Nlat=-1):
@@ -557,24 +634,32 @@ def get_doubles(self,Nlat=-1):
 ######################################
 
 chi2_fitgf_site = libedi2py.chi2_fitgf_site
-chi2_fitgf_site.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=5, flags='F_CONTIGUOUS'),c_int,c_int,c_int,c_int,c_int,np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),c_int,c_int,c_int] 
+chi2_fitgf_site.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=5, flags='F_CONTIGUOUS'),
+                            np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                            np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                            np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                            c_int,
+                            c_int] 
 chi2_fitgf_site.restype = None
 
 chi2_fitgf_ineq = libedi2py.chi2_fitgf_ineq
-chi2_fitgf_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=6, flags='F_CONTIGUOUS'),c_int,c_int,c_int,c_int,c_int,c_int,
-                            np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),c_int,c_int,
-                            np.ctypeslib.ndpointer(dtype=float,ndim=5, flags='F_CONTIGUOUS'),c_int,c_int,c_int,c_int,c_int,
+chi2_fitgf_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=6, flags='F_CONTIGUOUS'),
+                            np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                            np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),
+                            np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
+                            np.ctypeslib.ndpointer(dtype=float,ndim=5, flags='F_CONTIGUOUS'),
+                            np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS'),
                             c_int] 
 chi2_fitgf_ineq.restype = None
 
 def chi2_fitgf(self,func,bath,hloc=None,ispin=1,iorb=0):
-    dim_func=np.shape(func)
-    dim_bath=np.shape(bath)
-    dim_hloc=np.shape(hloc)
+    dim_func = np.asarray(np.shape(func),dtype=np.int64,order="F")
+    dim_bath = np.asarray(np.shape(bath),dtype=np.int64,order="F")
+    dim_hloc = np.asarray(np.shape(hloc),dtype=np.int64,order="F")
     if(len(dim_func)==5):
-        chi2_fitgf_site(func,dim_func[0],dim_func[1],dim_func[2],dim_func[3],dim_func[4],bath,dim_bath[0],ispin,iorb)
+        chi2_fitgf_site(func,dim_func,bath,dim_bath,ispin,iorb)
     else:
-        chi2_fitgf_ineq(func,dim_func[0],dim_func[1],dim_func[2],dim_func[3],dim_func[4],dim_func[5],bath,dim_bath[0],dim_bath[1],hloc,dim_hloc[0],dim_hloc[1],dim_hloc[2],dim_hloc[3],dim_hloc[4],ispin)
+        chi2_fitgf_ineq(func,dim_func,bath,dim_bath,hloc,dim_hloc,ispin)
         
 
 
@@ -584,7 +669,9 @@ def chi2_fitgf(self,func,bath,hloc=None,ispin=1,iorb=0):
 
 #search_variable
 search_variable_wrap = libedi2py.search_variable
-search_variable_wrap.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),np.ctypeslib.ndpointer(dtype=int,ndim=1, flags='F_CONTIGUOUS')]
+search_variable_wrap.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                 np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                 np.ctypeslib.ndpointer(dtype=int,ndim=1, flags='F_CONTIGUOUS')]
 search_variable_wrap.restype = None
 
 def search_variable(self,var,ntmp,converged):
@@ -601,7 +688,13 @@ def search_variable(self,var,ntmp,converged):
 
 #check_convergence
 check_convergence_wrap = libedi2py.check_convergence
-check_convergence_wrap.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=1, flags='F_CONTIGUOUS'),c_int,c_double,c_int,c_int,np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),np.ctypeslib.ndpointer(dtype=int,ndim=1, flags='F_CONTIGUOUS')]
+check_convergence_wrap.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=1, flags='F_CONTIGUOUS'),
+                                   c_int,
+                                   c_double,
+                                   c_int,
+                                   c_int,
+                                   np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                                   np.ctypeslib.ndpointer(dtype=int,ndim=1, flags='F_CONTIGUOUS')]
 check_convergence_wrap.restype = None
 
 def check_convergence(self,func,threshold,N1,N2):
