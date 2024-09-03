@@ -50,9 +50,14 @@ def add_global_variable(obj, dynamic_name, target_object, target_attribute):
 # Load shared library with C-bindings
 ######################################
 
+system = sys.platform
+libext = '.so' 
+if(system=='darwin'):
+    libext = '.dylib'
 libpath = os.path.dirname(os.path.realpath(__file__))
-libfile = os.path.join(libpath, 'libedi2py.so')
+libfile = os.path.join(libpath, 'libedi2py'+libext)
 libedi2py = CDLL(libfile)
+
 
 ######################################
 # READ_INPUT
