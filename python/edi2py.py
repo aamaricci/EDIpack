@@ -43,8 +43,6 @@ def add_global_variable(obj, dynamic_name, target_object, target_attribute):
     setattr(obj.__class__, dynamic_name, getter)
     setattr(obj.__class__, dynamic_name, setter)
 
-#create the class containing all the global variables
-
 
 ######################################
 # Load shared library with C-bindings
