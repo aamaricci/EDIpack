@@ -375,7 +375,7 @@ def get_bath_component(self,array,bath,typ="e"):
         raise ValueError('Shape(array) != 3 in get_bath_component')
     if not len(DimBath)==1:
         raise ValueError('Shape(bath) != 1 in get_bath_component')
-    edi2py.get_bath_component(array,DimArray,bath,DimBath,c_char_p(typ.encode()))
+    get_bath_component_wrap(array,DimArray,bath,DimBath,c_char_p(typ.encode()))
     return array
 
 #set_bath_component
@@ -394,7 +394,7 @@ def set_bath_component(self,array,bath,typ="e"):
         raise ValueError('Shape(array) != 3 in set_bath_component')
     if not len(DimBath)==1:
         raise ValueError('Shape(bath) != 1 in set_bath_component')
-    edi2py.set_bath_component(array,DimArray,bath,DimBath,c_char_p(typ.encode()))
+    set_bath_component_wrap(array,DimArray,bath,DimBath,c_char_p(typ.encode()))
     return array
  
 #copy_bath_component
@@ -413,7 +413,7 @@ def copy_bath_component(bathIN,bathOUT,typ="e"):
         raise ValueError('Shape(bathIN) != 1 in copy_bath_component')
     if not DimBathOut==1:
         raise ValueError('Shape(bathOUT) != 1 in copy_bath_component')
-    edi2py.copy_bath_component(bathIN,bathOUT,c_char_p(typ.encode()))
+    copy_bath_component_wrap(bathIN,bathOUT,c_char_p(typ.encode()))
     return bathOUT
 
 
