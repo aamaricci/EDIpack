@@ -75,17 +75,19 @@ def read_input(self,input_string):
 
 # Define the function signature for the Fortran function `init_solver_site`.
 init_solver_site = libedi2py.init_solver_site
-init_solver_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),np.ctypeslib.ndpointer(dtype=int,ndim=1, flags='F_CONTIGUOUS')]  
+init_solver_site.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=1, flags='F_CONTIGUOUS'),
+                             np.ctypeslib.ndpointer(dtype=np.int64,ndim=1, flags='F_CONTIGUOUS')]  
 init_solver_site.restype = None
 
 # Define the function signature for the Fortran function `init_solver_ineq`.
 init_solver_ineq = libedi2py.init_solver_ineq
-init_solver_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),np.ctypeslib.ndpointer(dtype=int,ndim=2, flags='F_CONTIGUOUS')]  
+init_solver_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=float,ndim=2, flags='F_CONTIGUOUS'),
+                             np.ctypeslib.ndpointer(dtype=np.int64,ndim=2, flags='F_CONTIGUOUS')]  
 init_solver_ineq.restype = None
 
 
 def init_solver(self,bath):
-    dim_bath=np.asarray(np.shape(bath),dtype=int,order="F")
+    dim_bath=np.asarray(np.shape(bath),dtype=np.int64,order="F")
     if len(dim_bath)<2:
         init_solver_site(bath,dim_bath)
     else:
