@@ -85,7 +85,7 @@ while (not converged and iloop<ed.Nloop ):
     Delta[0,0,0,0,:] = 0.25*wband*Gmats[0,0,0,0,:]
     if(rank==0):
         np.savetxt('Delta_iw.dat', np.transpose([wm,Delta[0,0,0,0,:].imag,Delta[0,0,0,0,:].real]))
-    ed.chi2_fitgf(Delta,bath,ispin=1,iorb=1)
+    ed.chi2_fitgf(Delta,bath,ispin=0,iorb=0)
     
     if(iloop>1):
         bath = wmixing*bath + (1.0-wmixing)*bath_prev

@@ -654,10 +654,12 @@ chi2_fitgf_ineq.argtypes = [np.ctypeslib.ndpointer(dtype=complex,ndim=6, flags='
                             c_int] 
 chi2_fitgf_ineq.restype = None
 
-def chi2_fitgf(self,func,bath,hloc=None,ispin=1,iorb=0):
+def chi2_fitgf(self,func,bath,hloc=None,ispin=0,iorb=-1):
     dim_func = np.asarray(np.shape(func),dtype=np.int64,order="F")
     dim_bath = np.asarray(np.shape(bath),dtype=np.int64,order="F")
     dim_hloc = np.asarray(np.shape(hloc),dtype=np.int64,order="F")
+    ispin = ispin + 1
+    iorb = iorb + 1
     if(len(dim_func)==5):
         chi2_fitgf_site(func,dim_func,bath,dim_bath,ispin,iorb)
     else:
