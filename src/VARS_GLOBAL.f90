@@ -220,7 +220,7 @@ MODULE ED_VARS_GLOBAL
   character(len=32)                                  :: ed_file_suffix=""       !suffix string attached to the output files.
   character(len=10)                                  :: ineq_site_suffix="_ineq"
   integer                                            :: site_indx_padding=4
-  logical                                            :: Jhflag              !spin-exchange and pair-hopping flag.
+  !logical                                           :: Jhflag              !spin-exchange and pair-hopping flag.
   logical                                            :: offdiag_gf_flag=.false.
   ! character(len=200)                               :: ed_input_file=""
 

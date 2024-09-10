@@ -408,7 +408,7 @@ contains
                 enddo
                 ! 
                 !SPIN-EXCHANGE Jx
-                if(Jhflag.AND.Jx/=0d0)then
+                if(Norb>1.AND.Jx/=0d0)then
                    do iorb=1,Norb
                       do jorb=1,Norb
                          Jcondition=(&
@@ -435,7 +435,7 @@ contains
                 endif
                 !
                 ! PAIR-HOPPING Jp
-                if(Jhflag.AND.Jp/=0d0)then
+                if(Norb>1.AND.Jp/=0d0)then
                    do iorb=1,Norb
                       do jorb=1,Norb
                          Jcondition=(&

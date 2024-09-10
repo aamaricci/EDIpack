@@ -86,7 +86,7 @@ contains
     end if
     !
     !NON-LOCAL HAMILTONIAN PART: H_non_loc*vin = vout
-    if(Jhflag)then
+    if(Norb>1.AND.(Jx/=0d0.OR.Jp/=0d0))then
        include "direct/HxV_non_local.f90"
     endif
     !-----------------------------------------------!
@@ -268,7 +268,7 @@ contains
     end if
     !
     !NON-LOCAL HAMILTONIAN PART: H_non_loc*vin = vout
-    if(Jhflag)then
+    if(Norb>1.AND.(Jx/=0d0.OR.Jp/=0d0))then
        N = 0
        call AllReduce_MPI(MpiComm,Nloc,N)
        !

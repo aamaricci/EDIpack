@@ -84,19 +84,19 @@ contains
           call sp_init_matrix(MpiComm,spH0e_eph,DimUp*DimDw)
        endif
        !
-       if(Jhflag)then
+       if(Norb>1.AND.(Jx/=0d0.OR.Jp/=0d0))then
           call sp_set_mpi_matrix(MpiComm,spH0nd,mpiIstart,mpiIend,mpiIshift)
           call sp_init_matrix(MpiComm,spH0nd,DimUp*DimDw)
        endif
     else
        call sp_init_matrix(spH0d,DimUp*DimDw)
        if(DimPh>1 .and. ph_type==1) call sp_init_matrix(spH0e_eph,DimUp*DimDw)
-       if(Jhflag)call sp_init_matrix(spH0nd,DimUp*DimDw)
+       if(Norb>1.AND.(Jx/=0d0.OR.Jp/=0d0))call sp_init_matrix(spH0nd,DimUp*DimDw)
     endif
 #else
     call sp_init_matrix(spH0d,DimUp*DimDw)
     if(DimPh>1 .and. ph_type==1) call sp_init_matrix(spH0e_eph,DimUp*DimDw)
-    if(Jhflag)call sp_init_matrix(spH0nd,DimUp*DimDw)
+    if(Norb>1.AND.(Jx/=0d0.OR.Jp/=0d0))call sp_init_matrix(spH0nd,DimUp*DimDw)
 #endif
     call sp_init_matrix(spH0dws(1),DimDw)
     call sp_init_matrix(spH0ups(1),DimUp)
@@ -114,7 +114,7 @@ contains
     include "stored/H_local.f90"
     !
     !NON-LOCAL HAMILTONIAN TERMS
-    if(jhflag)then
+    if(Norb>1.AND.(Jx/=0d0.OR.Jp/=0d0))then
        include "stored/H_non_local.f90"
     endif
     !
@@ -149,7 +149,7 @@ contains
        call sp_dump_matrix(spH0d,Hmat_tmp)
 #endif
        !
-       if(Jhflag)then
+       if(Norb>1.AND.(Jx/=0d0.OR.Jp/=0d0))then
           allocate(Hrdx(DimUp*DimDw,DimUp*DimDw));Hrdx=0d0
 #ifdef _MPI
           if(MpiStatus)then
@@ -529,7 +529,7 @@ contains
     enddo
     !
     !Non-Local:
-    if(jhflag)then
+    if(Norb>1.AND.(Jx/=0d0.OR.Jp/=0d0))then
        do i = 1,Nloc
           iph = (i-1)/(DimUp*DimDw) + 1
           i_el = mod(i-1,DimUp*DimDw) + 1
@@ -796,7 +796,7 @@ contains
     end if
     !
     !Non-Local:
-    if(jhflag)then
+    if(Norb>1.AND.(Jx/=0d0.OR.Jp/=0d0))then
        N = 0
        call AllReduce_MPI(MpiComm,Nloc,N)
        ! 

@@ -34,7 +34,7 @@ contains
     !
     if(.not.ed_total_ud)then
        if(bath_type=="hybrid")stop "ED ERROR: ed_total_ud=F can not be used with bath_type=hybrid"
-       if(Jhflag)stop "ED ERROR: ed_total_ud=F can not be used with Jx!=0 OR Jp!=0"
+       if(Norb>1.AND.(Jx/=0d0.OR.Jp/=0d0))stop "ED ERROR: ed_total_ud=F can not be used with Jx!=0 OR Jp!=0"
        if(ph_type==2)stop "ED_ERROR: ed_total_ud=F can not be used with ph_type=2"
     endif
     !
@@ -102,8 +102,8 @@ contains
     integer                          :: i,iud,iorb,jorb,ispin,jspin
     integer,dimension(:),allocatable :: DimUps,DimDws
     !
-    Jhflag=.FALSE.
-    if(Norb>1.AND.(Jx/=0d0.OR.Jp/=0d0))Jhflag=.TRUE.
+    !Jhflag=.FALSE.
+    !if(Norb>1.AND.(Jx/=0d0.OR.Jp/=0d0))Jhflag=.TRUE.
     !
     call ed_checks_global
     !
