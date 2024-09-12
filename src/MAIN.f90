@@ -34,6 +34,17 @@ module ED_MAIN
   end interface ed_solve
   public :: ed_solve
 
+
+  
+  interface ed_finalize_solver
+     module procedure :: ed_finalize_solver_single
+     module procedure :: ed_finalize_solver_lattice
+  end interface ed_finalize_solver
+  public :: ed_finalize_solver
+
+
+  !Boolean to redo setup. Moved to global for ed_finalize_solver
+  logical,save :: isetup=.true.
   !Boolean to select MPI mode for the inequivalent sites solver:
   !T: solve each site SERIALLY, using MPI lanczos, 
   !F: solve each site PARALLEL, using Serial Lanczos   
@@ -409,7 +420,84 @@ contains
 
 
 
+  !+-----------------------------------------------------------------------------+!
+  ! PURPOSE: deallocate and finalize one or multiple baths -+!
+  !+-----------------------------------------------------------------------------+!
+  !                              SINGLE SITE                                      !
+  !+-----------------------------------------------------------------------------+!
+  subroutine ed_finalize_solver_single()
+    logical                            :: check
+    integer                            :: i
+    !
+    !SET THE MPI FRAMEWORK:
+#ifdef _MPI
+    if(check_MPI())call ed_set_MpiComm()
+#endif
+    !
+    write(LOGfile,"(A)")"FINALIZE SOLVER "
+    !
+    !just in case deallocate some objects
+    call deallocate_dmft_bath(dmft_bath)
+    call es_delete_espace(state_list)
+    !call deallocate_GFmatrix(impGmatrix)
+    !call deallocate_GFmatrix(impDmatrix)
+    !call deallocate_GFmatrix(spinChimatrix)
+    !call deallocate_GFmatrix(densChimatrix)
+    !call deallocate_GFmatrix(pairChimatrix)
+    !call deallocate_GFmatrix(exctChimatrix)
+    call deallocate_grids
+    !nullify(spHtimesV_cc)
+    nullify(spHtimesV_p)
+    Hreplica_status=.false.
+    !Hgeneral_status=.false.
+    !
+    !Delete ED Structure & memory
+    call delete_ed_structure()
+    !
+    isetup=.true.
+    !
+    !DELETE THE MPI FRAMEWORK:
+#ifdef _MPI
+    if(check_MPI())call ed_del_MpiComm()
+#endif
+    !
+  end subroutine ed_finalize_solver_single
 
+  !+-----------------------------------------------------------------------------+!
+  !                              Multiple sites                                   !
+  !+-----------------------------------------------------------------------------+!
+  
+  subroutine ed_finalize_solver_lattice(Nineq)
+    integer                              :: ilat,Nineq
+    !
+    if(allocated(dens_ineq))deallocate(dens_ineq)
+    if(allocated(docc_ineq))deallocate(docc_ineq)
+    if(allocated(mag_ineq))deallocate(mag_ineq)
+    !if(allocated(phisc_ineq))deallocate(phisc_ineq)
+    if(allocated(e_ineq))deallocate(e_ineq)
+    if(allocated(dd_ineq))deallocate(dd_ineq)
+    if(allocated(Smats_ineq))deallocate(Smats_ineq)
+    if(allocated(Sreal_ineq))deallocate(Sreal_ineq)
+    !if(allocated(SAmats_ineq))deallocate(SAmats_ineq)
+    !if(allocated(SAreal_ineq))deallocate(SAreal_ineq)
+    if(allocated(Gmats_ineq))deallocate(Gmats_ineq)
+    if(allocated(Greal_ineq))deallocate(Greal_ineq)
+    !if(allocated(Fmats_ineq))deallocate(Fmats_ineq)
+    !if(allocated(Freal_ineq))deallocate(Freal_ineq)
+    !if(allocated(Dmats_ph_ineq))deallocate(Dmats_ph_ineq)
+    !if(allocated(Dreal_ph_ineq))deallocate(Dreal_ph_ineq)
+    !if(allocated(imp_density_matrix_ineq))deallocate(imp_density_matrix_ineq)
+    if(allocated(neigen_sector_ineq))deallocate(neigen_sector_ineq)
+    if(allocated(neigen_total_ineq))deallocate(neigen_total_ineq)
+    !
+    !
+    do ilat=1,Nineq
+       call ed_set_suffix(ilat)
+       call ed_finalize_solver()
+    enddo
+    call ed_reset_suffix
+    !
+  end subroutine ed_finalize_solver_lattice
 
 
 

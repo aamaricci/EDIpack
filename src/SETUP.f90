@@ -20,6 +20,7 @@ MODULE ED_SETUP
 
 
   public :: init_ed_structure
+  public :: delete_ed_structure
   public :: setup_global
   public :: set_Himpurity
 
@@ -235,6 +236,84 @@ contains
     !
   end subroutine init_ed_structure
 
+
+  !+------------------------------------------------------------------+
+  !PURPOSE  : Deallocate ED structure and reset environment
+  !+------------------------------------------------------------------+
+  subroutine delete_ed_structure()
+    logical                          :: control
+    integer                          :: i,iud
+    integer                          :: dim_sector_max,iorb,jorb,ispin,jspin
+    integer,dimension(:),allocatable :: DimUps,DimDws
+    !
+#ifdef _DEBUG
+    write(Logfile,"(A)")"DEBUG init_ed_structure: Massive allocation of internal memory"
+#endif
+    !
+    Ns       = 0
+    Ns_Orb   = 0
+    Ns_Ud    = 0
+    DimPh    = 0
+    !Nlevels  = 0
+    !Nhel     = 0
+    Nsectors = 0
+    !
+    !
+    if(MpiMaster)write(LOGfile,"(A)")"Cleaning ED structure"
+    if(allocated(spH0ups))deallocate(spH0ups)
+    if(allocated(spH0dws))deallocate(spH0dws)
+    if(allocated(getCsector))deallocate(getCsector)
+    if(allocated(getCDGsector))deallocate(getCDGsector)    !
+    !if(allocated(getSector))deallocate(getSector)
+    if(allocated(getDim))deallocate(getDim)
+    !if(allocated(getSz))deallocate(getSz)
+    !if(allocated(getN))deallocate(getN)
+    !if(allocated(gettwoJz))deallocate(gettwoJz)
+    !if(allocated(getmaxtwoJz))deallocate(getmaxtwoJz)
+    if(allocated(getBathStride))deallocate(getBathStride)
+    if(allocated(twin_mask))deallocate(twin_mask)
+    if(allocated(sectors_mask))deallocate(sectors_mask)
+    if(allocated(neigen_sector))deallocate(neigen_sector)
+    if(allocated(impHloc))deallocate(impHloc)
+    if(allocated(impSmats))deallocate(impSmats)
+    if(allocated(impSreal))deallocate(impSreal)
+    !if(allocated(impSAmats))deallocate(impSAmats)
+    !if(allocated(impSAreal))deallocate(impSAreal)
+    if(allocated(impGmats))deallocate(impGmats)
+    if(allocated(impGreal))deallocate(impGreal)
+    !if(allocated(impFmats))deallocate(impFmats)
+    !if(allocated(impFreal))deallocate(impFreal)
+    if(allocated(impG0mats))deallocate(impG0mats)
+    if(allocated(impG0real))deallocate(impG0real)
+    !if(allocated(impF0mats))deallocate(impF0mats)
+    !if(allocated(impF0real))deallocate(impF0real)
+    !if(allocated(impDmats_ph))deallocate(impDmats_ph)
+    !if(allocated(impDreal_ph))deallocate(impDreal_ph)
+    !if(allocated(impGmatrix))deallocate(impGmatrix)
+    if(allocated(ed_dens))deallocate(ed_dens)
+    if(allocated(ed_docc))deallocate(ed_docc)
+    !if(allocated(ed_phisc))deallocate(ed_phisc)
+    if(allocated(ed_dens_up))deallocate(ed_dens_up)
+    if(allocated(ed_dens_dw))deallocate(ed_dens_dw)
+    if(allocated(ed_mag))deallocate(ed_mag)
+    if(allocated(spinChi_tau))deallocate(spinChi_tau)
+    if(allocated(spinChi_w))deallocate(spinChi_w)
+    if(allocated(spinChi_w))deallocate(spinChi_iv)
+    !if(allocated(spinChiMatrix))deallocate(spinChiMatrix)
+    if(allocated(densChi_tau))deallocate(densChi_tau)
+    if(allocated(densChi_w))deallocate(densChi_w)
+    if(allocated(densChi_iv))deallocate(densChi_iv)
+    !if(allocated(densChiMatrix))deallocate(densChiMatrix)
+    if(allocated(pairChi_tau))deallocate(pairChi_tau)
+    if(allocated(pairChi_w))deallocate(pairChi_w)
+    if(allocated(pairChi_iv))deallocate(pairChi_iv)
+    !if(allocated(pairChiMatrix))deallocate(pairChiMatrix)
+    if(allocated(exctChi_tau))deallocate(exctChi_tau)
+    if(allocated(exctChi_w))deallocate(exctChi_w)
+    if(allocated(exctChi_iv))deallocate(exctChi_iv)
+    !if(allocated(exctChiMatrix))deallocate(exctChiMatrix)
+    !if(allocated(spin_field))deallocate(spin_field)
+  end subroutine delete_ed_structure
 
 
 

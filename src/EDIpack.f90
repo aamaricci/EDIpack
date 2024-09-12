@@ -68,7 +68,8 @@ MODULE EDIPACK
 
   USE ED_MAIN, only:                            &
        ed_init_solver                         , &
-       ed_solve
+       ed_solve                               , &
+       ed_finalize_solver
 
 
 END MODULE EDIPACK

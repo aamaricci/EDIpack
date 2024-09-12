@@ -9,7 +9,8 @@ import types
 
 #dummy class, to be filled
 class Link:
-    pass
+    def __init__(self):
+        self.Nineq=-1
 
 #function that will add a variable to the dummy class, will be called in variable definition
 def add_global_variable(obj, dynamic_name, target_object, target_attribute):
@@ -90,8 +91,10 @@ def init_solver(self,bath):
     dim_bath=np.asarray(np.shape(bath),dtype=np.int64,order="F")
     if len(dim_bath)<2:
         init_solver_site(bath,dim_bath)
+        self.Nineq=0
     else:
         init_solver_ineq(bath,dim_bath)
+        self.Nineq=dim_bath[0]
 
 # Define the function signature for the Fortran function `solve_site`.
 solve_site = libedi2py.solve_site
@@ -119,6 +122,22 @@ def solve(self,bath,hloc,sflag=True,mpi_lanc=False):
         solve_site(bath,dim_bath,hloc,dim_hloc,sflag)
     else:
         solve_ineq(bath,dim_bath,hloc,dim_hloc,mpi_lanc)
+        
+# Define the function signature for the Fortran function `finalize_solver`.
+finalize_solver_wrapper = libedi2py.finalize_solver
+finalize_solver_wrapper.argtypes = [c_int]
+finalize_solver_wrapper.restype = None
+
+
+def finalize_solver(self):
+    if self.Nineq < 0:
+        print("ED environment is not initialized yet")
+        return ;
+    else:
+        finalize_solver_wrapper(self.Nineq)
+        self.Nineq=-1
+        print("ED environment finalized")
+        return ;
         
 
 ######################################
@@ -756,6 +775,7 @@ global_env.read_input = types.MethodType(read_input, global_env)
 
 global_env.init_solver = types.MethodType(init_solver, global_env)
 global_env.solve = types.MethodType(solve, global_env)
+global_env.finalize_solver = types.MethodType(finalize_solver, global_env)
 
 global_env.get_bath_dimension = types.MethodType(get_bath_dimension, global_env)
 global_env.set_Hreplica = types.MethodType(set_Hreplica, global_env)
