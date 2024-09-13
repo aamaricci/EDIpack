@@ -64,7 +64,6 @@ contains
   subroutine ed_init_solver_single(bath)
     real(8),dimension(:),intent(inout) :: bath
     logical                            :: check 
-    logical,save                       :: isetup=.true.
     integer                            :: i
     !
     !SET THE LOCAL MPI COMMUNICATOR
@@ -478,6 +477,8 @@ contains
     if(allocated(dd_ineq))deallocate(dd_ineq)
     if(allocated(Smats_ineq))deallocate(Smats_ineq)
     if(allocated(Sreal_ineq))deallocate(Sreal_ineq)
+    if(allocated(impDmats))deallocate(impDmats)
+    if(allocated(impDreal))deallocate(impDreal)
     !if(allocated(SAmats_ineq))deallocate(SAmats_ineq)
     !if(allocated(SAreal_ineq))deallocate(SAreal_ineq)
     if(allocated(Gmats_ineq))deallocate(Gmats_ineq)
