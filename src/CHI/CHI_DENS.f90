@@ -45,18 +45,18 @@ contains
     write(LOGfile,"(A)")"Get impurity dens Chi:"
     do iorb=1,Norb
        write(LOGfile,"(A)")"Get Chi_dens_l"//reg(txtfy(iorb))
-       if(MPIMASTER)call start_timer()
+       if(MPIMASTER)call start_timer(unit=LOGfile)
        call lanc_ed_build_densChi_diag(iorb)
-       if(MPIMASTER)call stop_timer(unit=LOGfile)
+       if(MPIMASTER)call stop_timer
     enddo
     !
     if(Norb>1)then
        do iorb=1,Norb
           do jorb=iorb+1,Norb
              write(LOGfile,"(A)")"Get Chi_dens_mix_l"//reg(txtfy(iorb))//reg(txtfy(jorb))
-             if(MPIMASTER)call start_timer()
+             if(MPIMASTER)call start_timer(unit=LOGfile)
              call lanc_ed_build_densChi_mix(iorb,jorb)
-             if(MPIMASTER)call stop_timer(unit=LOGfile)
+             if(MPIMASTER)call stop_timer
           end do
        end do
        !

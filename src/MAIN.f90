@@ -303,7 +303,7 @@ contains
     !
     select case(mpi_lanc_)
     case (.false.)             !mpi_lanc=False => solve sites with MPI
-       if(MPI_MASTER)call start_timer
+       if(MPI_MASTER)call start_timer(unit=LOGfile)
        do ilat = 1 + MPI_ID, Nineq, MPI_SIZE
           write(LOGfile,*)str(MPI_ID)//" SOLVES INEQ SITE: "//str(ilat,Npad=site_indx_padding)
           call ed_set_suffix(ilat)
@@ -334,7 +334,7 @@ contains
           call MPI_Barrier(MPI_COMM_WORLD,MPI_ERR)
        endif
 #endif
-       if(MPI_MASTER)call stop_timer(unit=LOGfile)
+       if(MPI_MASTER)call stop_timer()
        call ed_reset_suffix
        !
 #ifdef _MPI
@@ -386,7 +386,7 @@ contains
 #endif
        !       
     case(.true.)                !solve sites serial, Lanczos with MPI
-       if(MPI_MASTER)call start_timer
+       if(MPI_MASTER)call start_timer(unit=LOGfile)
        do ilat = 1, Nineq
           write(LOGfile,*)" SOLVES INEQ SITE: "//str(ilat,Npad=site_indx_padding)
           call ed_set_suffix(ilat)
@@ -411,7 +411,7 @@ contains
           e_ineq(ilat,:)              = [ed_Epot,ed_Eint,ed_Ehartree,ed_Eknot]
           dd_ineq(ilat,:)             = [ed_Dust,ed_Dund,ed_Dse,ed_Dph]
        enddo
-       if(MPI_MASTER)call stop_timer(unit=LOGfile)
+       if(MPI_MASTER)call stop_timer()
        call ed_reset_suffix
     end select
     !

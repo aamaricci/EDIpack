@@ -31,5 +31,8 @@ IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
   ENDIF()
 ELSE()
   SET(GIT_REPO FALSE)
+  MESSAGE( STATUS "${Red}Git SHA1: ${ColourReset}${GIT_SHA1}" )
+  MESSAGE( STATUS "${Red}Git branch: ${ColourReset}${GIT_BRANCH}" )
+  MESSAGE(STATUS "${Red}Git tag: ${ColourReset}${GIT_TAG}")
 ENDIF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
 SET(VERSION ${GIT_TAG})    	#Update version

@@ -50,9 +50,9 @@ contains
     do ispin=1,Nspin
        do iorb=1,Norb
           write(LOGfile,"(A)")"Get G_l"//str(iorb)//"_s"//str(ispin)
-          if(MPIMASTER)call start_timer
+          if(MPIMASTER)call start_timer(unit=LOGfile)
           call lanc_build_gf_normal_diag(iorb,ispin)
-          if(MPIMASTER)call stop_timer(unit=LOGfile)
+          if(MPIMASTER)call stop_timer
        enddo
     enddo
     !
@@ -74,9 +74,9 @@ contains
                 if(.not.MaskBool)cycle
                 !
                 write(LOGfile,"(A)")"Get G_l"//str(iorb)//"_m"//str(jorb)//"_s"//str(ispin)
-                if(MPIMASTER)call start_timer
+                if(MPIMASTER)call start_timer(unit=LOGfile)
                 call lanc_build_gf_normal_mix(iorb,jorb,ispin)
-                if(MPIMASTER)call stop_timer(unit=LOGfile)
+                if(MPIMASTER)call stop_timer
              enddo
           enddo
        enddo

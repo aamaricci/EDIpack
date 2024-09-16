@@ -70,7 +70,7 @@ contains
     oldzero=1000.d0
     if(MPIMASTER)then
        write(LOGfile,"(A)")"Diagonalize impurity H:"
-       call start_timer()
+       call start_timer(unit=LOGfile)
     endif
     !
     lanc_verbose=.false.
@@ -131,7 +131,7 @@ contains
        if(allocated(eig_values))deallocate(eig_values)
        if(allocated(eig_basis))deallocate(eig_basis)
        !
-       if(ed_verbose>=3.AND.MPIMASTER)call start_timer()
+       if(ed_verbose>=3.AND.MPIMASTER)call start_timer(unit=LOGfile)
        if(lanc_solve)then
           allocate(eig_values(Neigen)) ; eig_values=0d0 
           !
@@ -216,7 +216,7 @@ contains
           !
        endif
        !
-       if(ed_verbose>=3.AND.MPIMASTER)call stop_timer(unit=LOGfile)
+       if(ed_verbose>=3.AND.MPIMASTER)call stop_timer
        !
        if(ed_verbose>=4)then
           write(LOGfile,*)"EigValues: ",eig_values(:Neigen)
@@ -254,7 +254,7 @@ contains
        if(allocated(eig_basis))deallocate(eig_basis)
        !
     enddo sector
-    if(MPIMASTER)call stop_timer(unit=LOGfile)
+    if(MPIMASTER)call stop_timer
   end subroutine ed_diag_d
 
 

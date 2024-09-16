@@ -43,9 +43,9 @@ contains
   !+------------------------------------------------------------------+
   subroutine build_gf_phonon()
     write(LOGfile,"(A)")"Get phonon Green function:"
-    if(MPIMASTER)call start_timer()
+    if(MPIMASTER)call start_timer(unit=LOGfile)
     call lanc_build_gf_phonon_main()
-    if(MPIMASTER)call stop_timer(unit=LOGfile)
+    if(MPIMASTER)call stop_timer
     !
   end subroutine build_gf_phonon
 

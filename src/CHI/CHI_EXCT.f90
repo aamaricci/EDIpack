@@ -49,15 +49,15 @@ contains
        do iorb=1,Norb
           do jorb=iorb+1,Norb
              write(LOGfile,"(A)")"Get singlet Chi_exct_l"//reg(txtfy(iorb))//reg(txtfy(jorb))
-             if(MPIMASTER)call start_timer()
+             if(MPIMASTER)call start_timer(unit=LOGfile)
              call lanc_ed_build_exctChi_singlet(iorb,jorb)
-             if(MPIMASTER)call stop_timer(unit=LOGfile)
+             if(MPIMASTER)call stop_timer
              !
              write(LOGfile,"(A)")"Get triplet Chi_exct_l"//reg(txtfy(iorb))//reg(txtfy(jorb))
-             if(MPIMASTER)call start_timer()
+             if(MPIMASTER)call start_timer(unit=LOGfile)
              call lanc_ed_build_exctChi_tripletXY(iorb,jorb)
              call lanc_ed_build_exctChi_tripletZ(iorb,jorb)
-             if(MPIMASTER)call stop_timer(unit=LOGfile)
+             if(MPIMASTER)call stop_timer
              !
              exctChi_w(0:,jorb,iorb,:)   = exctChi_w(0:,iorb,jorb,:)
              exctChi_tau(0:,jorb,iorb,:) = exctChi_tau(0:,iorb,jorb,:)
